@@ -1,0 +1,3313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAR - Photo Upload</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0c0c0e 0%, #010002 100%);
+            min-height: 100vh;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Mobile First Responsive Design */
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 3px;
+                align-items: flex-start;
+                padding-top: 10px;
+            }
+        }
+
+        .container {
+            max-width: 800px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            width: 100%;
+            max-height: 95vh;
+            overflow-y: auto;
+        }
+        
+        /* Container responsive */
+        @media (max-width: 768px) {
+            .container {
+                max-width: 100%;
+                border-radius: 12px;
+                box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+                max-height: 90vh;
+                width: calc(100% - 10px);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                border-radius: 8px;
+                max-height: 95vh;
+                width: calc(100% - 6px);
+            }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #38c3ff 0%, #2196f3 100%);
+            color: white;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        /* Header responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 20px 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+                margin-bottom: 8px;
+            }
+            
+            .header p {
+                font-size: 1em;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header {
+                padding: 15px 10px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em;
+                margin-bottom: 5px;
+            }
+            
+            .header p {
+                font-size: 0.9em;
+            }
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+        
+        /* Main content responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 20px 15px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .main-content {
+                padding: 15px 10px;
+            }
+        }
+
+        .form-group {
+            margin-bottom: 30px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1.1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input[type="text"]:focus {
+            outline: none;
+            border-color: #38c3ff;
+        }
+
+        .project-info {
+            background: #f8f9fa;
+            border-left: 4px solid #38c3ff;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+            display: none;
+        }
+
+        .project-info h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .project-info p {
+            color: #666;
+            margin: 5px 0;
+        }
+
+        .file-upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s;
+            background: #fafafa;
+            margin: 20px 0;
+        }
+
+        .file-upload-area:hover {
+            border-color: #38c3ff;
+            background: #f0f9ff;
+        }
+
+        .file-upload-area.dragover {
+            border-color: #38c3ff;
+            background: #f0f9ff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            color: #ccc;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #38c3ff 0%, #2196f3 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: transform 0.3s;
+            min-width: 160px;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .camera-btn {
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+        }
+
+        /* ====== CATEGORY SELECTION STYLES ====== */
+        .category-selection {
+            margin: 30px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            border: 2px solid #38c3ff;
+        }
+
+        .category-selection h4 {
+            color: #333;
+            margin: 0 0 20px 0;
+            font-size: 1.2em;
+            text-align: center;
+        }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .category-option {
+            cursor: pointer;
+        }
+
+        .category-option input[type="radio"] {
+            display: none;
+        }
+
+        .category-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            background: white;
+            border: 2px solid #dee2e6;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .category-option:hover .category-card {
+            border-color: #38c3ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(56, 195, 255, 0.2);
+        }
+
+        .category-option input[type="radio"]:checked + .category-card {
+            border-color: #38c3ff;
+            background: linear-gradient(135deg, #e3f2fd 0%, #f0f8ff 100%);
+            box-shadow: 0 4px 15px rgba(56, 195, 255, 0.3);
+        }
+
+        .category-icon {
+            font-size: 2em;
+            margin-bottom: 8px;
+        }
+
+        .category-name {
+            font-weight: 600;
+            color: #333;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        /* Category selection responsive */
+        @media (max-width: 768px) {
+            .category-selection {
+                margin: 20px 0;
+                padding: 15px;
+            }
+            
+            .category-grid {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                gap: 10px;
+            }
+            
+            .category-card {
+                padding: 12px;
+            }
+            
+            .category-icon {
+                font-size: 1.5em;
+                margin-bottom: 6px;
+            }
+            
+            .category-name {
+                font-size: 0.8em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .category-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+            
+            .category-card {
+                padding: 10px;
+            }
+            
+            .category-icon {
+                font-size: 1.3em;
+                margin-bottom: 5px;
+            }
+            
+            .category-name {
+                font-size: 0.75em;
+            }
+        }
+
+        .camera-btn:hover {
+            box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
+        }
+
+        /* Camera Modal Styles */
+        .camera-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .camera-content {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            max-width: 90vw;
+            max-height: 90vh;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .camera-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .close-camera {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            padding: 5px;
+        }
+
+        .close-camera:hover {
+            color: #333;
+        }
+
+        .camera-video {
+            width: 100%;
+            max-width: 500px;
+            height: auto;
+            border-radius: 10px;
+            background: #000;
+        }
+
+        .camera-canvas {
+            display: none;
+        }
+
+        .camera-controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .camera-capture {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+        }
+
+        .camera-capture:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.3);
+        }
+
+        .camera-close {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+        }
+
+        .camera-close:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(244, 67, 54, 0.3);
+        }
+
+        /* ====== ADDITIONAL RESPONSIVE DESIGN ====== */
+        @media (max-width: 768px) {
+
+            .header {
+                padding: 30px 20px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .upload-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .upload-btn {
+                width: 100%;
+                padding: 15px;
+                font-size: 1.1em;
+            }
+
+            /* OPTIMIZACIÓN PARA iOS/MÓVILES */
+            .camera-content {
+                padding: 10px;
+                max-width: 95vw;
+                max-height: 90vh; /* Reducido para iOS */
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+            }
+
+            .camera-header {
+                margin-bottom: 8px;
+                padding-bottom: 8px;
+                flex-shrink: 0;
+            }
+
+            .camera-header h3 {
+                font-size: 1.2em;
+                margin: 0;
+            }
+
+            .close-camera {
+                font-size: 28px !important;
+                padding: 8px !important;
+                min-width: 40px;
+                min-height: 40px;
+            }
+
+            .camera-video {
+                max-width: 100%;
+                max-height: 60vh; /* Limitado para dejar espacio a botones */
+                width: 100%;
+                object-fit: cover;
+                flex-shrink: 1;
+            }
+
+            .camera-controls {
+                flex-direction: row; /* Botones en fila en móvil */
+                gap: 10px;
+                margin-top: 15px;
+                flex-shrink: 0;
+                justify-content: center;
+            }
+
+            .camera-capture,
+            .camera-close {
+                flex: 1;
+                padding: 12px 15px;
+                font-size: 0.95em;
+                min-height: 48px; /* Tamaño mínimo para touch */
+            }
+
+            .preview-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 10px;
+            }
+
+            .preview-img {
+                height: 120px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .header p {
+                font-size: 1em;
+            }
+
+            .form-group input[type="text"] {
+                padding: 12px;
+                font-size: 1em;
+            }
+
+            .submit-btn {
+                padding: 12px 30px;
+                font-size: 1.1em;
+            }
+
+            .camera-header h3 {
+                font-size: 1.2em;
+            }
+
+            /* OPTIMIZACIÓN EXTREMA PARA IPHONES PEQUEÑOS */
+            .camera-content {
+                max-height: 92vh !important; /* Más grande para iPhone */
+                max-width: 95vw !important;
+                padding: 10px;
+            }
+
+            .camera-video {
+                max-height: 65vh !important; /* Video más grande en iPhones */
+                min-height: 55vh !important;
+                width: 100% !important;
+            }
+
+            .camera-capture,
+            .camera-close {
+                padding: 15px 20px !important;
+                font-size: 1em !important;
+                min-height: 50px !important; /* Botones más grandes */
+                flex: 1;
+                max-width: 140px;
+            }
+
+            .preview-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            }
+
+            .preview-img {
+                height: 100px;
+            }
+        }
+
+        /* OPTIMIZACIÓN ESPECÍFICA PARA IPHONE (SAFARI) */
+        @supports (-webkit-touch-callout: none) {
+            .camera-modal {
+                padding: 5px;
+            }
+            
+            .camera-content {
+                max-height: 95vh !important;
+                max-width: 98vw !important;
+                overflow: hidden;
+                margin: auto;
+            }
+        }
+
+        /* ====== ADDITIONAL RESPONSIVE IMPROVEMENTS ====== */
+        
+        /* Large tablets */
+        @media (max-width: 1024px) {
+            .search-group {
+                gap: 12px;
+            }
+            
+            .category-tabs {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 8px;
+            }
+            
+            .gallery-grid {
+                grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+                gap: 10px;
+            }
+        }
+
+        /* Enhanced mobile responsiveness for buttons and navigation */
+        @media (max-width: 767px) {
+            .back-link {
+                display: block;
+                text-align: center;
+                margin-bottom: 15px;
+                padding: 10px 20px;
+                font-size: 0.9em;
+            }
+            
+            .search-group {
+                text-align: center;
+            }
+            
+            .file-input-wrapper {
+                text-align: center;
+                margin: 15px 0;
+            }
+            
+            .camera-btn {
+                display: block;
+                width: 100%;
+                margin: 10px 0;
+                text-align: center;
+            }
+            
+            .inspection-header {
+                text-align: center;
+            }
+            
+            .gallery-header h4 {
+                text-align: center;
+                margin-bottom: 10px;
+            }
+            
+            .category-tabs {
+                padding: 0 5px;
+            }
+            
+            .project-details {
+                text-align: center;
+                justify-content: center;
+            }
+        }
+
+        /* Ultra small screens (iPhone SE, etc.) */
+        @media (max-width: 375px) {
+            .header h1 {
+                font-size: 1.3em;
+            }
+            
+            .category-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 6px;
+            }
+            
+            .category-card {
+                padding: 6px;
+                min-height: 65px;
+            }
+            
+            .category-icon {
+                font-size: 1em;
+                margin-bottom: 3px;
+            }
+            
+            .category-name {
+                font-size: 0.65em;
+            }
+            
+            .gallery-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 4px;
+                max-height: 200px;
+            }
+            
+            .category-tab {
+                padding: 3px 6px;
+                font-size: 0.65em;
+                border-radius: 12px;
+            }
+            
+            .search-input {
+                font-size: 0.85em;
+                padding: 8px;
+            }
+            
+            .search-btn {
+                font-size: 0.85em;
+                padding: 8px;
+            }
+            
+            .camera-video {
+                max-height: 70vh !important;
+                min-height: 60vh !important;
+                width: 100% !important;
+                border-radius: 8px;
+            }
+            
+            .camera-controls {
+                position: sticky;
+                bottom: 0;
+                background: white;
+                padding: 15px 10px;
+                border-radius: 0 0 15px 15px;
+                margin: 10px -15px -15px -15px;
+                display: flex;
+                gap: 10px;
+                justify-content: center;
+            }
+            
+            .camera-capture,
+            .camera-close {
+                flex: 1;
+                max-width: 150px;
+                min-height: 50px !important;
+                font-size: 1.1em !important;
+                padding: 15px 20px !important;
+            }
+        }
+
+        /* FIX PARA VIEWPORT HEIGHT EN iOS */
+        @media screen and (max-height: 700px) {
+            .camera-content {
+                max-height: 75vh !important;
+            }
+            
+            .camera-video {
+                max-height: 40vh !important;
+            }
+        }
+
+        /* ====== DETAILED GALLERY MODAL STYLES ====== */
+        .detailed-gallery-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+        }
+
+        .gallery-modal-content {
+            position: relative;
+            background: #ffffff;
+            margin: 2% auto;
+            padding: 0;
+            width: 95%;
+            max-width: 1200px;
+            height: 90vh;
+            border-radius: 15px;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .gallery-modal-header {
+            background: linear-gradient(135deg, #38c3ff 0%, #2196f3 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 15px 15px 0 0;
+        }
+
+        .gallery-modal-header h2 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .gallery-modal-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .view-toggle {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+
+        .view-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .view-toggle.active {
+            background: rgba(255, 255, 255, 0.4);
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+
+        .gallery-modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 5px 15px;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .gallery-modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .gallery-modal-project-info {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .gallery-modal-project-info p {
+            margin: 0 0 5px 0;
+            font-size: 0.95em;
+        }
+
+        .gallery-modal-filters {
+            background: #ffffff;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: #f8f9fa;
+            color: #495057;
+            border: 1px solid #dee2e6;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.3s;
+        }
+
+        .filter-btn:hover {
+            background: #e9ecef;
+        }
+
+        .filter-btn.active {
+            background: #38c3ff;
+            color: white;
+            border-color: #38c3ff;
+        }
+
+        .modal-gallery-grid {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .modal-gallery-grid.grid-view {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            /* Ensure clean grid layout */
+            align-items: start;
+            justify-items: stretch;
+        }
+
+        .modal-gallery-grid.list-view {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .modal-photo-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: box-shadow 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            /* Removed position: relative to fix stacking */
+        }
+
+        .modal-photo-card:hover {
+            /* Removed transform to fix overlay issue */
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-photo-image {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            display: block;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .modal-photo-info {
+            padding: 10px;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 40px;
+        }
+
+        .modal-photo-info h4 {
+            margin: 0 0 5px 0;
+            font-size: 0.9em;
+            color: #495057;
+        }
+
+        .gallery-modal-footer {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            justify-content: center;
+        }
+
+        .back-to-upload-btn {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .back-to-upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+        }
+
+        /* Photo Modal (for full-size viewing) */
+        .photo-modal {
+            display: none;
+            position: fixed;
+            z-index: 3000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+        }
+
+        .photo-modal-content {
+            position: relative;
+            margin: auto;
+            padding: 20px;
+            width: 90%;
+            height: 90%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .photo-modal-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 3001;
+        }
+
+        .photo-modal-close:hover {
+            color: #38c3ff;
+        }
+
+        .modal-image {
+            max-width: 100%;
+            max-height: 80%;
+            object-fit: contain;
+            border-radius: 10px;
+        }
+
+        .modal-info {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+            max-width: 600px;
+        }
+
+        /* Responsive for modals */
+        @media (max-width: 768px) {
+            .gallery-modal-content {
+                width: 98%;
+                height: 95vh;
+                margin: 1% auto;
+                border-radius: 10px;
+            }
+
+            .gallery-modal-header {
+                padding: 15px;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .gallery-modal-header h2 {
+                font-size: 1.3em;
+            }
+
+            .gallery-modal-controls {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .view-toggle {
+                padding: 6px 12px;
+                font-size: 0.8em;
+            }
+
+            .gallery-modal-project-info {
+                padding: 12px 15px;
+            }
+
+            .gallery-modal-project-info p {
+                font-size: 0.85em;
+                margin-bottom: 3px;
+            }
+
+            .modal-gallery-grid {
+                padding: 15px;
+            }
+
+            .modal-gallery-grid.grid-view {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                gap: 12px;
+            }
+
+            .modal-photo-card {
+                border-radius: 8px;
+            }
+
+            .modal-photo-image {
+                height: 140px;
+                object-fit: cover;
+            }
+
+            .modal-photo-info {
+                padding: 8px;
+            }
+
+            .modal-photo-info h4 {
+                font-size: 0.8em;
+                line-height: 1.2;
+            }
+
+            .gallery-modal-filters {
+                padding: 12px 15px;
+                gap: 8px;
+            }
+
+            .filter-btn {
+                padding: 6px 12px;
+                font-size: 0.8em;
+                border-radius: 15px;
+            }
+
+            .gallery-modal-footer {
+                padding: 12px 15px;
+            }
+
+            .back-to-upload-btn {
+                padding: 10px 25px;
+                font-size: 0.9em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .gallery-modal-content {
+                width: 100%;
+                height: 100vh;
+                margin: 0;
+                border-radius: 0;
+            }
+
+            .gallery-modal-header {
+                padding: 12px;
+            }
+
+            .gallery-modal-header h2 {
+                font-size: 1.1em;
+            }
+
+            .view-toggle {
+                padding: 5px 10px;
+                font-size: 0.75em;
+            }
+
+            .gallery-modal-close {
+                font-size: 24px;
+                padding: 3px 10px;
+            }
+
+            .gallery-modal-project-info {
+                padding: 10px 12px;
+            }
+
+            .modal-gallery-grid {
+                padding: 12px;
+            }
+
+            .modal-gallery-grid.grid-view {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+                align-items: start;
+                justify-items: stretch;
+            }
+
+            .modal-photo-card {
+                aspect-ratio: 1;
+                height: auto;
+                overflow: hidden;
+            }
+
+            .modal-photo-image {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                object-position: center;
+                border-radius: 8px 8px 0 0;
+                display: block;
+                /* Removed transition to prevent stacking issues */
+            }
+
+            .modal-photo-card:hover .modal-photo-image {
+                /* Removed scale transform to fix overlay issue */
+            }
+
+            .modal-photo-info {
+                padding: 6px;
+            }
+
+            .modal-photo-info h4 {
+                font-size: 0.7em;
+                line-height: 1.1;
+                margin-bottom: 2px;
+            }
+
+            .gallery-modal-filters {
+                padding: 10px 12px;
+                gap: 6px;
+                flex-wrap: wrap;
+            }
+
+            .filter-btn {
+                flex: 1;
+                min-width: calc(33.33% - 4px);
+                padding: 8px 4px;
+                font-size: 0.7em;
+                text-align: center;
+                border-radius: 12px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .gallery-modal-footer {
+                padding: 10px 12px;
+            }
+
+            .back-to-upload-btn {
+                width: 100%;
+                padding: 12px;
+                font-size: 0.9em;
+                border-radius: 8px;
+            }
+
+            /* Photo Modal responsive */
+            .photo-modal-content {
+                width: 95%;
+                height: 95%;
+                padding: 10px;
+            }
+
+            .photo-modal-close {
+                top: 10px;
+                right: 15px;
+                font-size: 30px;
+            }
+
+            .modal-image {
+                max-height: 75%;
+                border-radius: 8px;
+            }
+
+            .modal-info {
+                padding: 10px;
+                margin-top: 15px;
+                border-radius: 8px;
+                font-size: 0.9em;
+            }
+        }
+
+        /* Ultra small screens */
+        @media (max-width: 360px) {
+            .modal-gallery-grid {
+                padding: 8px;
+            }
+
+            .modal-gallery-grid.grid-view {
+                grid-template-columns: 1fr 1fr;
+                gap: 6px;
+            }
+
+            .modal-photo-card {
+                aspect-ratio: 1;
+                height: auto;
+            }
+
+            .modal-photo-image {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                border-radius: 6px 6px 0 0;
+            }
+
+            .modal-photo-info {
+                padding: 4px;
+            }
+
+            .modal-photo-info h4 {
+                font-size: 0.6em;
+                line-height: 1.1;
+            }
+
+            .filter-btn {
+                font-size: 0.65em;
+                padding: 6px 4px;
+                min-width: calc(33.33% - 3px);
+            }
+
+            .gallery-modal-header h2 {
+                font-size: 1em;
+            }
+        }
+
+        /* ====== ACTIVE INSPECTION PANEL ====== */
+        .active-inspection {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 2px solid #38c3ff;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 8px 25px rgba(56, 195, 255, 0.15);
+        }
+        
+        /* Active inspection responsive */
+        @media (max-width: 768px) {
+            .active-inspection {
+                padding: 15px;
+                margin: 15px 0;
+                border-radius: 10px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .active-inspection {
+                padding: 10px;
+                margin: 10px 0;
+                border-radius: 8px;
+            }
+        }
+
+        .inspection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .gallery-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
+        }
+
+        .gallery-controls h4 {
+            margin: 0;
+            color: #495057;
+            font-size: 1.1em;
+        }
+
+        /* Inspection header responsive */
+        @media (max-width: 768px) {
+            .inspection-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+                margin-bottom: 15px;
+                padding-bottom: 10px;
+            }
+
+            .gallery-controls {
+                width: 100%;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .inspection-header {
+                gap: 10px;
+                margin-bottom: 10px;
+                padding-bottom: 8px;
+            }
+
+            .gallery-controls {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+
+            .gallery-controls h4 {
+                text-align: center;
+                font-size: 1em;
+            }
+
+            .gallery-detail-btn {
+                width: 100%;
+            }
+        }
+
+        .inspection-info h3 {
+            color: #333;
+            margin: 0 0 10px 0;
+            font-size: 1.4em;
+        }
+
+        .project-details {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        /* Project details responsive */
+        @media (max-width: 768px) {
+            .project-details {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .project-details {
+                gap: 8px;
+            }
+        }
+
+        .vid-badge {
+            background: linear-gradient(135deg, #38c3ff 0%, #2196f3 100%);
+            color: white;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .photo-counter {
+            background: #28a745;
+            color: white;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .finish-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+        }
+
+        .finish-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+        }
+
+        /* ====== LIVE GALLERY ====== */
+        .live-gallery {
+            margin-top: 20px;
+        }
+
+        .live-gallery h4 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        /* ====== GALLERY HEADER & CONTROLS ====== */
+        .gallery-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .gallery-detail-btn {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .gallery-detail-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+        }
+
+        /* ====== CATEGORY TABS ====== */
+        .category-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+
+        .category-tab {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            color: #6c757d;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .category-tab:hover {
+            border-color: #38c3ff;
+            color: #333;
+            transform: translateY(-1px);
+        }
+
+        .category-tab.active {
+            background: linear-gradient(135deg, #38c3ff 0%, #2196f3 100%);
+            border-color: #38c3ff;
+            color: white;
+            box-shadow: 0 2px 8px rgba(56, 195, 255, 0.3);
+        }
+
+        /* Responsive gallery controls */
+        @media (max-width: 768px) {
+            .gallery-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .gallery-detail-btn {
+                width: 100%;
+                padding: 12px 16px;
+            }
+            
+            .category-tabs {
+                width: 100%;
+                gap: 6px;
+            }
+            
+            .category-tab {
+                font-size: 0.7em;
+                padding: 6px 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .category-tab {
+                font-size: 0.65em;
+                padding: 5px 8px;
+            }
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            background: white;
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+        }
+        
+        /* Gallery grid responsive */
+        @media (max-width: 768px) {
+            .gallery-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                gap: 8px;
+                max-height: 250px;
+                padding: 8px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .gallery-grid {
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+                gap: 6px;
+                max-height: 200px;
+                padding: 6px;
+            }
+        }
+
+        .gallery-item {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f8f9fa;
+            aspect-ratio: 1;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .gallery-item:hover {
+            transform: scale(1.05);
+        }
+
+        .gallery-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .gallery-item-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            color: white;
+            padding: 5px;
+            font-size: 0.7em;
+            text-align: center;
+        }
+
+        .gallery-item.new-upload {
+            border: 2px solid #28a745;
+            box-shadow: 0 0 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .loading-photos {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .preview-area {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .preview-item {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f5f5f5;
+        }
+
+        .preview-img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #38c3ff 0%, #2196f3 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            font-size: 1.2em;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 30px;
+            transition: transform 0.3s;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #38c3ff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        /* Top navigation bar */
+        .top-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+            padding: 0;
+        }
+
+        .back-link {
+            color: #38c3ff;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .finish-btn-top {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .finish-btn-top:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+        }
+
+        /* Finish Inspection button in upload area */
+        .finish-btn-upload {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .finish-btn-upload:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        /* Responsive for finish button in upload area */
+        @media (max-width: 768px) {
+            .finish-btn-upload {
+                padding: 10px 25px;
+                font-size: 0.95em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .finish-btn-upload {
+                padding: 10px 20px;
+                font-size: 0.9em;
+                border-radius: 20px;
+            }
+        }
+
+        /* Top navigation responsive */
+        @media (max-width: 768px) {
+            .top-navigation {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+            }
+
+            .finish-btn-top {
+                width: 100%;
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .top-navigation {
+                gap: 10px;
+            }
+
+            .finish-btn-top {
+                padding: 10px 20px;
+                font-size: 0.9em;
+            }
+        }
+
+        /* ====== NEW CATEGORY SELECTION STYLES ====== */
+        .category-selection-main {
+            margin: 20px 0;
+            padding: 25px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            border: 3px solid #6c757d;
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.2);
+        }
+        
+        /* Category selection responsive */
+        @media (max-width: 768px) {
+            .category-selection-main {
+                margin: 15px 0;
+                padding: 20px;
+                border-radius: 12px;
+                border-width: 2px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .category-selection-main {
+                margin: 10px 0;
+                padding: 15px;
+                border-radius: 10px;
+                border-width: 2px;
+            }
+        }
+
+        .step-header {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .step-header h3 {
+            color: #495057;
+            margin: 0 0 10px 0;
+            font-size: 1.4em;
+            font-weight: 700;
+        }
+        
+        /* Step header responsive */
+        @media (max-width: 768px) {
+            .step-header {
+                margin-bottom: 12px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .step-header {
+                margin-bottom: 10px;
+            }
+        }
+
+        .category-instruction {
+            color: white;
+            font-weight: 700;
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            padding: 15px 20px;
+            border-radius: 12px;
+            border-left: 6px solid #0c5460;
+            margin: 0;
+            box-shadow: 0 4px 15px rgba(23, 162, 184, 0.4);
+            font-size: 1.1em;
+            text-align: center;
+            letter-spacing: 0.5px;
+            border: 2px solid #0c5460;
+        }
+        
+        /* Category instruction responsive */
+        @media (max-width: 768px) {
+            .category-instruction {
+                padding: 12px 15px;
+                font-size: 1.05em;
+                border-radius: 10px;
+                border-left-width: 5px;
+                letter-spacing: 0.3px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .category-instruction {
+                padding: 10px 12px;
+                font-size: 1em;
+                border-radius: 8px;
+                border-left-width: 4px;
+                letter-spacing: 0.2px;
+                line-height: 1.3;
+            }
+        }
+
+        .category-status {
+            text-align: center;
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .status-warning {
+            color: #721c24;
+            background: #f8d7da;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-success {
+            color: #155724;
+            background: #d4edda;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        /* Disabled state styles */
+        .upload-disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            filter: grayscale(50%);
+        }
+
+        .btn-disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📸 Photo Upload</h1>
+            <p>Upload photos directly to Company Cam</p>
+        </div>
+
+        <div class="main-content">
+            <div class="top-navigation">
+                <a href="https://viadar.onrender.com/" class="back-link">← Back to DAR System</a>
+            </div>
+
+            <!-- Project search form -->
+            <div id="searchSection" class="form-group">
+                <label for="vidInput">Project V-ID:</label>
+                <input type="text" id="vidInput" placeholder="Enter V-ID (e.g.: V-23-001)" 
+                       autocomplete="off">
+            </div>
+
+            <!-- Project information -->
+            <div id="projectInfo" class="project-info">
+                <h3>Project Found</h3>
+                <p><strong>V-ID:</strong> <span id="projectVid"></span></p>
+                <p><strong>Address:</strong> <span id="projectAddress"></span></p>
+                <p><strong>Company Cam:</strong> <span id="projectCompanyCam"></span></p>
+            </div>
+
+            <!-- STEP 1: Category Selection (MOVED UP FIRST!) -->
+            <div id="categorySelectionSection" class="category-selection-main" style="display: none;">
+                <div class="step-header">
+                    <p class="category-instruction">⚠️ Please select a damage category before taking or uploading photos</p>
+                </div>
+                <div class="category-selection">
+                    <div class="category-grid">
+                        <label class="category-option">
+                            <input type="radio" name="photoCategory" value="interior-damage" onchange="onCategoryChange()">
+                            <span class="category-card">
+                                <div class="category-icon">🏠</div>
+                                <div class="category-name">Interior Damage</div>
+                            </span>
+                        </label>
+                        <label class="category-option">
+                            <input type="radio" name="photoCategory" value="hvac-damage" onchange="onCategoryChange()">
+                            <span class="category-card">
+                                <div class="category-icon">🌀</div>
+                                <div class="category-name">HVAC Damage</div>
+                            </span>
+                        </label>
+                        <label class="category-option">
+                            <input type="radio" name="photoCategory" value="windows-damage" onchange="onCategoryChange()">
+                            <span class="category-card">
+                                <div class="category-icon">🪟</div>
+                                <div class="category-name">Windows Damage</div>
+                            </span>
+                        </label>
+                        <label class="category-option">
+                            <input type="radio" name="photoCategory" value="roofing-damage" onchange="onCategoryChange()">
+                            <span class="category-card">
+                                <div class="category-icon">🏘️</div>
+                                <div class="category-name">Roofing System Damage</div>
+                            </span>
+                        </label>
+                        <label class="category-option">
+                            <input type="radio" name="photoCategory" value="exterior-components" onchange="onCategoryChange()">
+                            <span class="category-card">
+                                <div class="category-icon">🏢</div>
+                                <div class="category-name">Exterior Components</div>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                <div class="category-status" id="categoryStatus">
+                    <span class="status-warning">⚠️ Category not selected - photo actions are disabled</span>
+                </div>
+            </div>
+
+            <!-- STEP 2: Upload Area (after category selection) -->
+            <div id="uploadArea" class="file-upload-area" style="display: none;">
+                <div class="upload-text" id="uploadText">
+                    Please select a photo category first before uploading photos
+                </div>
+
+                <!-- Preview area (moved here for immediate feedback) -->
+                <div id="previewArea" class="preview-area">
+                    <h3>Selected Photos</h3>
+                    <div id="previewGrid" class="preview-grid"></div>
+                </div>
+
+                <div class="upload-buttons">
+                    <button type="button" class="upload-btn file-input-wrapper" onclick="document.getElementById('fileInput').click()">
+                        📁 Select from Gallery
+                    </button>
+                    <button type="button" class="upload-btn camera-btn" onclick="openCamera()">
+                        📷 Take Photo
+                    </button>
+                </div>
+                <input type="file" id="fileInput" class="file-input" multiple accept="image/*">
+                
+                <!-- Upload button moved here for linear flow -->
+                <button id="submitBtn" class="submit-btn" disabled style="margin-top: 20px;">
+                    Upload Photos to Company Cam Damage Category
+                </button>
+                
+                <!-- Finish Inspection button below upload -->
+                <button type="button" id="finishInspectionBtn" class="finish-btn-upload" onclick="finishInspection()" style="display: none; margin-top: 15px;">
+                    ✅ Finish Inspection
+                </button>
+            </div>
+
+            <!-- STEP 3: Active Inspection Panel (moved to last) -->
+            <div id="activeInspection" class="active-inspection" style="display: none;">
+                <div class="inspection-header">
+                    <div class="inspection-info">
+                        <h3>🔍 Inspection Summary</h3>
+                        <div class="project-details">
+                            <span class="vid-badge" id="activeVid"></span>
+                            <span class="photo-counter" id="photoCounter">0 photos</span>
+                        </div>
+                    </div>
+                    <div class="gallery-controls">
+                        <h4>📸 Project Photos</h4>
+                        <button type="button" class="gallery-detail-btn" onclick="openDetailedGallery()">
+                            🔍 View Detailed Gallery
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Real-time categorized photo gallery -->
+                <div id="liveGallery" class="live-gallery">
+                    
+                    <!-- Category Tabs -->
+                    <div class="category-tabs">
+                        <button class="category-tab active" data-category="all" onclick="filterGalleryByCategory('all')">
+                            📋 All Photos
+                        </button>
+                        <button class="category-tab" data-category="interior-damage" onclick="filterGalleryByCategory('interior-damage')">
+                            🏠 Interior
+                        </button>
+                        <button class="category-tab" data-category="hvac-damage" onclick="filterGalleryByCategory('hvac-damage')">
+                            🌡️ HVAC
+                        </button>
+                        <button class="category-tab" data-category="windows-damage" onclick="filterGalleryByCategory('windows-damage')">
+                            🪟 Windows
+                        </button>
+                        <button class="category-tab" data-category="roofing-damage" onclick="filterGalleryByCategory('roofing-damage')">
+                            🏘️ Roofing
+                        </button>
+                        <button class="category-tab" data-category="exterior-components" onclick="filterGalleryByCategory('exterior-components')">
+                            🔧 Exterior
+                        </button>
+                    </div>
+                    
+                    <div id="galleryGrid" class="gallery-grid">
+                        <div class="loading-photos">Loading photos...</div>
+                    </div>
+                </div>
+            </div>
+
+
+
+                   <!-- Camera Modal -->
+                   <div id="cameraModal" class="camera-modal">
+                       <div class="camera-content">
+                           <div class="camera-header">
+                               <h3>📷 Take Photo</h3>
+                               <button class="close-camera" onclick="closeCamera()">✕</button>
+                           </div>
+                           <video id="cameraVideo" class="camera-video" autoplay playsinline></video>
+                           <canvas id="cameraCanvas" class="camera-canvas"></canvas>
+                           <div class="camera-controls">
+                               <button class="camera-capture" onclick="capturePhoto()">📸 Capture</button>
+                               <button class="camera-close" onclick="closeCamera()">Cancel</button>
+                           </div>
+                       </div>
+                   </div>
+
+
+
+
+
+            <!-- Loading -->
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Uploading photos to Company Cam...</p>
+            </div>
+
+            <!-- Alertas -->
+            <div id="alertSuccess" class="alert alert-success"></div>
+            <div id="alertError" class="alert alert-error"></div>
+        </div>
+        
+        <!-- DETAILED GALLERY MODAL -->
+        <div id="detailedGalleryModal" class="detailed-gallery-modal">
+            <div class="gallery-modal-content">
+                <div class="gallery-modal-header">
+                    <h2>📸 Detailed Photo Gallery</h2>
+                    <div class="gallery-modal-controls">
+                        <button class="view-toggle" id="gridViewBtn">
+                            <span class="icon">⊞</span> Grid View
+                        </button>
+                        <button class="view-toggle" id="listViewBtn">
+                            <span class="icon">☰</span> List View
+                        </button>
+                        <button class="gallery-modal-close" onclick="closeDetailedGalleryModal()">×</button>
+                    </div>
+                </div>
+                
+                <div class="gallery-modal-project-info">
+                    <p><strong>V-ID:</strong> <span id="modalProjectVid"></span></p>
+                    <p><strong>Project:</strong> <span id="modalProjectName"></span></p>
+                    <p><strong>Address:</strong> <span id="modalProjectAddress"></span></p>
+                </div>
+                
+                <div class="gallery-modal-filters">
+                    <button class="filter-btn active" data-category="all">📋 All Photos</button>
+                    <button class="filter-btn" data-category="interior-damage">🏠 Interior</button>
+                    <button class="filter-btn" data-category="hvac-damage">🌀 HVAC</button>
+                    <button class="filter-btn" data-category="windows-damage">🪟 Windows</button>
+                    <button class="filter-btn" data-category="roofing-damage">🏘️ Roofing</button>
+                    <button class="filter-btn" data-category="exterior-components">🔧 Exterior</button>
+                </div>
+                
+                <div id="modalGalleryGrid" class="modal-gallery-grid grid-view">
+                    <!-- Photos will be loaded here dynamically -->
+                </div>
+                
+                <div class="gallery-modal-footer">
+                    <button class="back-to-upload-btn" onclick="closeDetailedGalleryModal()">
+                        ← Back to Upload
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- PHOTO MODAL FOR DETAILED VIEW -->
+        <div id="photoModal" class="photo-modal">
+            <div class="photo-modal-content">
+                <span class="photo-modal-close" onclick="closePhotoModal()">&times;</span>
+                <img id="modalImage" class="modal-image" src="" alt="">
+                <div class="modal-info">
+                    <p id="modalDescription"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let selectedFiles = [];
+        let currentProject = null;
+        let cameraStream = null;
+        let isInspectionActive = false;
+        let projectPhotos = [];
+        let galleryRefreshInterval = null;
+        let currentCategoryFilter = 'all';
+
+        // Referencias DOM
+        const vidInput = document.getElementById('vidInput');
+        const projectInfo = document.getElementById('projectInfo');
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const previewArea = document.getElementById('previewArea');
+        const previewGrid = document.getElementById('previewGrid');
+        const submitBtn = document.getElementById('submitBtn');
+        const loading = document.getElementById('loading');
+        const cameraModal = document.getElementById('cameraModal');
+        const cameraVideo = document.getElementById('cameraVideo');
+        const cameraCanvas = document.getElementById('cameraCanvas');
+        const alertSuccess = document.getElementById('alertSuccess');
+        const alertError = document.getElementById('alertError');
+
+        // New inspection session elements
+        const searchSection = document.getElementById('searchSection');
+        const activeInspection = document.getElementById('activeInspection');
+        const activeVid = document.getElementById('activeVid');
+        const photoCounter = document.getElementById('photoCounter');
+        const finishInspectionBtn = document.getElementById('finishInspectionBtn');
+        const galleryGrid = document.getElementById('galleryGrid');
+
+        // Event listeners
+        vidInput.addEventListener('input', searchProject);
+        fileInput.addEventListener('change', handleFileSelect);
+        submitBtn.addEventListener('click', uploadPhotos);
+        // finishInspectionBtnTop click is handled by onclick in HTML
+        
+        // Modal event listeners
+        document.getElementById('gridViewBtn').addEventListener('click', () => setModalView('grid'));
+        document.getElementById('listViewBtn').addEventListener('click', () => setModalView('list'));
+        
+        // Close modal when clicking outside
+        document.getElementById('detailedGalleryModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDetailedGalleryModal();
+            }
+        });
+        
+        document.getElementById('photoModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePhotoModal();
+            }
+        });
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('dragleave', handleDragLeave);
+        uploadArea.addEventListener('drop', handleDrop);
+
+        // Buscar proyecto por V-ID
+        async function searchProject() {
+            const vid = vidInput.value.trim().toUpperCase();
+            
+            if (vid.length < 3) {
+                hideProjectInfo();
+                return;
+            }
+
+            try {
+                // Buscar usando nuestro backend que conecta con Company Cam
+                const response = await fetch('/api/search_project', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ vid: vid })
+                });
+
+                const result = await response.json();
+
+                if (result.found) {
+                    showProjectInfo(result);
+                } else {
+                    hideProjectInfo();
+                    showAlert(result.message || 'Project not found', 'error');
+                }
+            } catch (error) {
+                console.error('Error buscando proyecto:', error);
+                // Fallback: buscar en v_id_index.json local
+                try {
+                    const response = await fetch('v_id_index.json');
+                    const data = await response.json();
+                    
+                    // Buscar en la estructura correcta: v_ids[vid]
+                    const project = data.v_ids && data.v_ids[vid];
+
+                    if (project) {
+                        showProjectInfo({
+                            found: true,
+                            vid: vid,
+                            project_id: project.cc_id,
+                            name: project.business_name || vid,
+                            address: `${project.property_address}, ${project.city}, ${project.state} ${project.zipcode}`,
+                            company_cam_link: project.companycam_link,
+                            source: 'local_fallback'
+                        });
+                    } else {
+                        hideProjectInfo();
+                    }
+                } catch (fallbackError) {
+                    showAlert('Error searching for project. Please verify the V-ID.', 'error');
+                }
+            }
+        }
+
+        // Extraer project_id del link de Company Cam
+        function extractProjectIdFromLink(link) {
+            if (!link || !link.includes('/projects/')) return null;
+            try {
+                return link.split('/projects/')[1].split('/')[0];
+            } catch {
+                return null;
+            }
+        }
+
+        // Mostrar información del proyecto y activar inspección
+        function showProjectInfo(project) {
+            currentProject = project;
+            
+            document.getElementById('projectVid').textContent = project.name || project.vid || 'N/A';
+            document.getElementById('projectAddress').textContent = project.address || 'N/A';
+            document.getElementById('projectCompanyCam').textContent = project.company_cam_link || 'N/A';
+            
+            projectInfo.style.display = 'block';
+            
+            // STEP 1: Show category selection FIRST
+            showCategorySelection();
+            
+            // STEP 2: Show upload area but disabled initially
+            uploadArea.style.display = 'block';
+            
+            // Ask user if they want to start inspection session
+            setTimeout(() => {
+                const vid = project.vid || project.name || 'Unknown';
+                if (confirm(`🚀 Start Active Inspection for ${vid}?\n\nThis will enable:\n• Continuous photo uploading\n• Real-time gallery\n• Session persistence\n• Photo counter\n\nClick OK to start inspection mode.`)) {
+                    startInspectionSession(project);
+                }
+            }, 800);
+        }
+
+        // Ocultar información del proyecto
+        function hideProjectInfo() {
+            currentProject = null;
+            projectInfo.style.display = 'none';
+            uploadArea.style.display = 'none';
+            previewArea.style.display = 'none';
+            selectedFiles = [];
+            updateSubmitButton();
+        }
+
+        // Manejar selección de archivos
+        function handleFileSelect(event) {
+            const files = Array.from(event.target.files);
+            addFiles(files);
+        }
+
+        // Drag and drop handlers
+        function handleDragOver(event) {
+            event.preventDefault();
+            uploadArea.classList.add('dragover');
+        }
+
+        function handleDragLeave(event) {
+            event.preventDefault();
+            uploadArea.classList.remove('dragover');
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = Array.from(event.dataTransfer.files);
+            addFiles(files.filter(file => file.type.startsWith('image/')));
+        }
+
+        // Agregar archivos a la selección
+        function addFiles(files) {
+            files.forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    selectedFiles.push(file);
+                }
+            });
+            
+            updatePreview();
+            updateSubmitButton();
+        }
+
+        // Actualizar preview de fotos
+        function updatePreview() {
+            if (selectedFiles.length === 0) {
+                previewArea.style.display = 'none';
+                return;
+            }
+
+            previewArea.style.display = 'block';
+            previewGrid.innerHTML = '';
+
+            selectedFiles.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'preview-item';
+
+                const img = document.createElement('img');
+                img.className = 'preview-img';
+                img.src = URL.createObjectURL(file);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'remove-btn';
+                removeBtn.innerHTML = '×';
+                removeBtn.onclick = () => removeFile(index);
+
+                item.appendChild(img);
+                item.appendChild(removeBtn);
+                previewGrid.appendChild(item);
+            });
+        }
+
+        // Remover archivo
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            updatePreview();
+            updateSubmitButton();
+        }
+
+        // Actualizar estado del botón de envío
+        function updateSubmitButton() {
+            const hasFiles = selectedFiles.length > 0;
+            const hasProject = !!currentProject;
+            const shouldEnable = hasFiles && hasProject;
+            
+            console.log('🔄 Updating submit button:', {
+                filesCount: selectedFiles.length,
+                hasProject: hasProject,
+                currentProject: currentProject,
+                shouldEnable: shouldEnable
+            });
+            
+            submitBtn.disabled = !shouldEnable;
+            
+            if (shouldEnable) {
+                console.log('✅ Submit button ENABLED');
+            } else {
+                console.log('❌ Submit button DISABLED');
+            }
+        }
+
+        // Upload photos to Company Cam
+        async function uploadPhotos() {
+            if (!currentProject || selectedFiles.length === 0) {
+                showAlert('Please select a project and at least one photo.', 'error');
+                return;
+            }
+
+            if (!currentProject.project_id) {
+                showAlert('Could not determine the project ID in Company Cam.', 'error');
+                return;
+            }
+
+            // Get selected category
+            const selectedCategory = document.querySelector('input[name="photoCategory"]:checked');
+            if (!selectedCategory) {
+                showAlert('Please select a photo category.', 'error');
+                return;
+            }
+            const categoryTag = selectedCategory.value;
+
+            // Mostrar loading
+            loading.style.display = 'block';
+            submitBtn.disabled = true;
+
+            try {
+                // Crear FormData para la subida
+                const formData = new FormData();
+                formData.append('project_id', currentProject.project_id);
+                formData.append('vid', currentProject.vid);
+                formData.append('category', categoryTag); // Add category tag
+                
+                // Agregar todas las fotos
+                selectedFiles.forEach((file, index) => {
+                    formData.append('photos', file);
+                });
+
+                // Subir a nuestro backend
+                const response = await fetch('/api/upload_photos', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    const successCount = result.success || 0;
+                    const errorCount = result.errors || 0;
+                    
+                    let message = `${successCount} photos uploaded successfully to Company Cam.`;
+                    if (errorCount > 0) {
+                        message += ` (${errorCount} errors)`;
+                    }
+                    
+                    showAlert(message, successCount > 0 ? 'success' : 'error');
+                    
+                    // Si hubo errores, mostrarlos
+                    if (result.error_messages && result.error_messages.length > 0) {
+                        console.log('Errores:', result.error_messages);
+                    }
+                    
+                    // Si hubo éxito, limpiar formulario
+                    if (successCount > 0) {
+                        selectedFiles = [];
+                        updatePreview();
+                        
+                        if (isInspectionActive) {
+                            // In inspection mode: refresh gallery and continue session
+                            console.log('🔄 Refreshing gallery after upload...');
+                            setTimeout(() => {
+                                loadProjectPhotos(currentProject.project_id);
+                            }, 2000); // Give Company Cam time to process
+                            
+                            // Keep the session active, don't reset
+                            const vid = currentProject.vid || currentProject.name;
+                            showAlert(`🚀 Photos uploaded! Ready for more photos in ${vid}`, 'success');
+                        } else {
+                            // Normal mode: reset everything
+                            vidInput.value = '';
+                            hideProjectInfo();
+                        }
+                    }
+                } else {
+                    throw new Error(result.error || 'Upload error');
+                }
+                
+            } catch (error) {
+                console.error('Error uploading photos:', error);
+                showAlert('Error uploading photos: ' + error.message, 'error');
+            } finally {
+                loading.style.display = 'none';
+                updateSubmitButton();
+            }
+        }
+
+        // Mostrar alerta
+        function showAlert(message, type) {
+            hideAlerts();
+            
+            const alert = type === 'success' ? alertSuccess : alertError;
+            alert.textContent = message;
+            alert.style.display = 'block';
+            
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+
+        // Ocultar alertas
+        function hideAlerts() {
+            alertSuccess.style.display = 'none';
+            alertError.style.display = 'none';
+        }
+
+        // ====== CAMERA FUNCTIONS ======
+        
+        async function openCamera() {
+            try {
+                console.log('📷 Opening camera...');
+                
+                // Check if getUserMedia is supported
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('Camera API not supported in this browser');
+                }
+                
+                // Check if we're on HTTP (not HTTPS)
+                if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+                    throw new Error('Camera requires HTTPS or localhost. Current: ' + location.protocol + '//' + location.hostname);
+                }
+                
+                console.log('🔒 Protocol check passed:', location.protocol, location.hostname);
+                
+                // Request camera access with fallback options
+                try {
+                    // Try with environment camera first (back camera on mobile)
+                    cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            facingMode: 'environment',
+                            width: { ideal: 1920 },
+                            height: { ideal: 1080 }
+                        } 
+                    });
+                } catch (envError) {
+                    console.log('🔄 Environment camera failed, trying user camera...');
+                    // Fallback to front camera
+                    cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            facingMode: 'user',
+                            width: { ideal: 1920 },
+                            height: { ideal: 1080 }
+                        } 
+                    });
+                }
+                
+                // Show camera modal
+                cameraModal.style.display = 'flex';
+                
+                // Set video stream
+                cameraVideo.srcObject = cameraStream;
+                cameraVideo.play();
+                
+                console.log('✅ Camera opened successfully');
+                
+            } catch (error) {
+                console.error('❌ Error accessing camera:', error);
+                
+                let errorMessage = 'Could not access camera. ';
+                let suggestions = '';
+                
+                if (error.name === 'NotAllowedError') {
+                    errorMessage += 'Camera access was denied.';
+                    suggestions = '\n\n🔧 Solutions:\n• Click the camera icon in address bar\n• Allow camera access\n• Refresh the page and try again';
+                } else if (error.name === 'NotFoundError') {
+                    errorMessage += 'No camera found on this device.';
+                    suggestions = '\n\n💡 Try using "Select from Gallery" instead.';
+                } else if (error.name === 'NotSupportedError') {
+                    errorMessage += 'Camera is not supported in this browser.';
+                    suggestions = '\n\n💡 Try Chrome, Firefox, or Safari.';
+                } else if (error.message.includes('HTTPS')) {
+                    errorMessage += 'Camera requires HTTPS for security.';
+                    suggestions = '\n\n🚀 Camera will work in production (Render.com uses HTTPS)\n💡 For now, use "Select from Gallery"';
+                } else {
+                    errorMessage += error.message || 'Please check camera permissions.';
+                    suggestions = '\n\n🔧 Try:\n• Check browser permissions\n• Use "Select from Gallery" instead';
+                }
+                
+                showAlert(errorMessage + suggestions, 'error');
+            }
+        }
+
+        function closeCamera() {
+            console.log('🔒 Closing camera...');
+            
+            // Stop camera stream
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            
+            // Hide camera modal
+            cameraModal.style.display = 'none';
+            
+            // Clear video
+            cameraVideo.srcObject = null;
+            
+            console.log('✅ Camera closed');
+        }
+
+        function capturePhoto() {
+            try {
+                console.log('📸 Capturing photo...');
+                
+                // Set canvas dimensions to match video
+                const videoWidth = cameraVideo.videoWidth;
+                const videoHeight = cameraVideo.videoHeight;
+                
+                cameraCanvas.width = videoWidth;
+                cameraCanvas.height = videoHeight;
+                
+                // Draw current video frame to canvas
+                const ctx = cameraCanvas.getContext('2d');
+                ctx.drawImage(cameraVideo, 0, 0, videoWidth, videoHeight);
+                
+                // Convert canvas to blob
+                cameraCanvas.toBlob((blob) => {
+                    if (blob) {
+                        // Create file-like object
+                        const timestamp = Date.now();
+                        const filename = `camera_photo_${timestamp}.jpg`;
+                        
+                        // Create File object from blob
+                        const file = new File([blob], filename, { type: 'image/jpeg' });
+                        
+                        // Add to selected files
+                        selectedFiles.push(file);
+                        
+                        // Update preview
+                        updatePreview();
+                        
+                        // Update submit button state
+                        updateSubmitButton();
+                        
+                        // Close camera
+                        closeCamera();
+                        
+                        console.log(`✅ Photo captured: ${filename}`);
+                        console.log('📊 After capture - selectedFiles:', selectedFiles.length);
+                        console.log('📊 After capture - currentProject:', currentProject);
+                        showAlert('Photo captured successfully! 📸', 'success');
+                        
+                    } else {
+                        throw new Error('Failed to capture photo');
+                    }
+                }, 'image/jpeg', 0.9);
+                
+            } catch (error) {
+                console.error('❌ Error capturing photo:', error);
+                showAlert('Error capturing photo. Please try again.', 'error');
+            }
+        }
+
+        // Close camera when clicking outside modal
+        cameraModal.addEventListener('click', (e) => {
+            if (e.target === cameraModal) {
+                closeCamera();
+            }
+        });
+
+        // Close camera on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && cameraModal.style.display === 'flex') {
+                closeCamera();
+            }
+        });
+
+        console.log('📱 Camera functionality loaded!');
+
+        // ====== INSPECTION SESSION FUNCTIONS ======
+        
+        // Start inspection session
+        function startInspectionSession(projectData) {
+            console.log('🚀 Starting inspection session for:', projectData.vid || projectData.name);
+            
+            isInspectionActive = true;
+            currentProject = projectData;
+            
+            // Update UI to show active inspection
+            searchSection.style.display = 'none';
+            projectInfo.style.display = 'none';
+            activeInspection.style.display = 'block';
+            finishInspectionBtn.style.display = 'block';
+            
+            // Set inspection info
+            const vid = projectData.vid || projectData.name || 'Unknown';
+            activeVid.textContent = vid;
+            
+            // Load existing photos from Company Cam
+            if (projectData.project_id) {
+                loadProjectPhotos(projectData.project_id);
+            } else {
+                galleryGrid.innerHTML = '<div class="loading-photos">⚠️ No project ID found - cannot load photos</div>';
+            }
+            
+            // Start gallery refresh interval (every 30 seconds)
+            if (galleryRefreshInterval) clearInterval(galleryRefreshInterval);
+            galleryRefreshInterval = setInterval(() => {
+                if (isInspectionActive && currentProject && currentProject.project_id) {
+                    loadProjectPhotos(currentProject.project_id, true);
+                }
+            }, 30000);
+            
+            showAlert(`🚀 Inspection session started for ${vid}!`, 'success');
+        }
+
+        // Load project photos from Company Cam
+        async function loadProjectPhotos(projectId, isRefresh = false) {
+            try {
+                if (!isRefresh) {
+                    galleryGrid.innerHTML = '<div class="loading-photos">📷 Loading photos...</div>';
+                }
+                
+                console.log('🔍 Loading photos for project:', projectId);
+                
+                const response = await fetch(`/api/project_photos/${projectId}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    projectPhotos = result.photos || [];
+                    updateGalleryDisplay();
+                    updatePhotoCounter();
+                    
+                    if (!isRefresh) {
+                        console.log(`✅ Loaded ${projectPhotos.length} photos`);
+                    }
+                } else {
+                    console.error('❌ Failed to load photos:', result.error);
+                    galleryGrid.innerHTML = `<div class="loading-photos">❌ Failed to load photos: ${result.error}</div>`;
+                }
+                
+            } catch (error) {
+                console.error('❌ Error loading photos:', error);
+                galleryGrid.innerHTML = '<div class="loading-photos">❌ Error loading photos</div>';
+            }
+        }
+
+        // Update gallery display
+        function updateGalleryDisplay() {
+            if (projectPhotos.length === 0) {
+                galleryGrid.innerHTML = '<div class="loading-photos">📷 No photos in this project yet</div>';
+                return;
+            }
+            
+            // Filter photos by current category
+            let filteredPhotos = projectPhotos;
+            if (currentCategoryFilter !== 'all') {
+                filteredPhotos = projectPhotos.filter(photo => {
+                    const category = extractCategoryFromPhoto(photo);
+                    return category === currentCategoryFilter;
+                });
+            }
+            
+            // Update category badges
+            updateCategoryBadges();
+            
+            if (filteredPhotos.length === 0) {
+                galleryGrid.innerHTML = `<div class="loading-photos">📷 No photos in ${currentCategoryFilter} category</div>`;
+                return;
+            }
+            
+            galleryGrid.innerHTML = '';
+            
+            filteredPhotos.forEach((photo, index) => {
+                const item = document.createElement('div');
+                item.className = 'gallery-item';
+                
+                // Mark recently uploaded photos
+                if (photo.is_new_upload) {
+                    item.classList.add('new-upload');
+                }
+                
+                const img = document.createElement('img');
+                img.className = 'gallery-img';
+                img.src = photo.thumbnail_url || photo.url;
+                img.alt = photo.description || `Photo ${index + 1}`;
+                
+                // Add click to view full size
+                img.onclick = () => viewFullPhoto(photo);
+                
+                const info = document.createElement('div');
+                info.className = 'gallery-item-info';
+                info.textContent = photo.creator_name || 'Unknown';
+                
+                item.appendChild(img);
+                item.appendChild(info);
+                galleryGrid.appendChild(item);
+            });
+        }
+
+        // Update photo counter
+        function updatePhotoCounter() {
+            const count = projectPhotos.length;
+            photoCounter.textContent = `${count} photo${count !== 1 ? 's' : ''}`;
+        }
+
+        // View full photo
+        function viewFullPhoto(photo) {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.9); z-index: 2000; display: flex;
+                justify-content: center; align-items: center; cursor: pointer;
+            `;
+            
+            const img = document.createElement('img');
+            img.style.cssText = `
+                max-width: 90%; max-height: 90%; object-fit: contain;
+                border-radius: 10px; box-shadow: 0 0 50px rgba(255,255,255,0.3);
+            `;
+            img.src = photo.url;
+            
+            modal.appendChild(img);
+            document.body.appendChild(modal);
+            
+            // Close on click
+            modal.onclick = () => document.body.removeChild(modal);
+            
+            // Close on escape
+            const closeOnEscape = (e) => {
+                if (e.key === 'Escape') {
+                    document.body.removeChild(modal);
+                    document.removeEventListener('keydown', closeOnEscape);
+                }
+            };
+            document.addEventListener('keydown', closeOnEscape);
+        }
+
+        // Finish inspection session
+        function finishInspection() {
+            if (!isInspectionActive) return;
+            
+            const vid = currentProject?.vid || currentProject?.name || 'Unknown';
+            
+            if (confirm(`🏁 Finish inspection for ${vid}?\n\nTotal photos: ${projectPhotos.length}\n\nThis will return to project search.`)) {
+                console.log('🏁 Finishing inspection session');
+                
+                // Clear intervals
+                if (galleryRefreshInterval) {
+                    clearInterval(galleryRefreshInterval);
+                    galleryRefreshInterval = null;
+                }
+                
+                // Reset state
+                isInspectionActive = false;
+                currentProject = null;
+                projectPhotos = [];
+                selectedFiles = [];
+                
+                // Reset UI
+                activeInspection.style.display = 'none';
+                searchSection.style.display = 'block';
+                uploadArea.style.display = 'none';
+                previewArea.style.display = 'none';
+                finishInspectionBtn.style.display = 'none';
+                
+                // Clear inputs
+                vidInput.value = '';
+                updatePreview();
+                updateSubmitButton();
+                
+                // Clear localStorage to prevent persistence bug
+                console.log('🧹 Clearing localStorage on Finish Inspection...');
+                localStorage.removeItem('currentProject');
+                localStorage.removeItem('currentVid');
+                localStorage.removeItem('activeInspection');
+                console.log('✅ localStorage cleared - ready for new project');
+                
+                showAlert(`✅ Inspection completed for ${vid}!`, 'success');
+            }
+        }
+
+        // ====== CATEGORY FILTERING FUNCTIONS ======
+        
+        // Extract category from photo metadata
+        function extractCategoryFromPhoto(photo) {
+            console.log('🔍 Extracting category from photo:', photo);
+            
+            // Company Cam doesn't return tags in GET requests, so check description first
+            if (photo.description) {
+                console.log('📝 Photo description (type):', typeof photo.description);
+                console.log('📝 Photo description (value):', photo.description);
+                
+                // If description is an object, look for text property
+                let descriptionText = '';
+                if (typeof photo.description === 'string') {
+                    descriptionText = photo.description;
+                } else if (photo.description && photo.description.text) {
+                    descriptionText = photo.description.text;
+                } else if (photo.description && photo.description.value) {
+                    descriptionText = photo.description.value;
+                }
+                
+                if (descriptionText) {
+                    console.log('📝 Description text:', descriptionText);
+                    const categoryMatch = descriptionText.match(/\[Category:\s*([^\]]+)\]/i);
+                    if (categoryMatch) {
+                        const category = categoryMatch[1].toLowerCase().replace(/\s+/g, '-');
+                        console.log('✅ Found category in description:', category);
+                        return category;
+                    }
+                }
+            }
+            
+            // Fallback: Check tags (though Company Cam API doesn't return them)
+            if (photo.tags && Array.isArray(photo.tags)) {
+                console.log('🏷️ Photo tags:', photo.tags);
+                for (const tag of photo.tags) {
+                    if (['interior-damage', 'hvac-damage', 'windows-damage', 'roofing-damage', 'exterior-components'].includes(tag)) {
+                        console.log('✅ Found category tag:', tag);
+                        return tag;
+                    }
+                }
+            }
+            
+            console.log('❌ No category found, defaulting to general');
+            return 'general'; // Default category
+        }
+
+        // Filter gallery by category
+        function filterGalleryByCategory(category) {
+            currentCategoryFilter = category;
+            
+            // Update active tab
+            document.querySelectorAll('.category-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-category="${category}"]`).classList.add('active');
+            
+            // Filter photos and update display
+            updateGalleryDisplay();
+            console.log(`📋 Filtered to ${category}`);
+        }
+
+        // Update category badges with counts
+        function updateCategoryBadges() {
+            const categoryCounts = {
+                'all': projectPhotos.length,
+                'interior-damage': 0,
+                'hvac-damage': 0,
+                'windows-damage': 0,
+                'roofing-damage': 0,
+                'exterior-components': 0
+            };
+            
+            projectPhotos.forEach(photo => {
+                const category = extractCategoryFromPhoto(photo);
+                if (categoryCounts.hasOwnProperty(category)) {
+                    categoryCounts[category]++;
+                }
+            });
+            
+            // Update tab text with counts
+            Object.keys(categoryCounts).forEach(category => {
+                const tab = document.querySelector(`[data-category="${category}"]`);
+                if (tab) {
+                    const count = categoryCounts[category];
+                    const originalText = tab.textContent.split(' (')[0]; // Remove existing count
+                    if (count > 0 || category === 'all') {
+                        tab.textContent = `${originalText} (${count})`;
+                    }
+                }
+            });
+        }
+
+        // Open detailed gallery 
+        function openDetailedGallery() {
+            if (!currentProject) {
+                showAlert('❌ No project selected', 'error');
+                return;
+            }
+            
+            console.log('🔍 Opening detailed gallery modal for project:', currentProject);
+            
+            // Show the modal
+            const modal = document.getElementById('detailedGalleryModal');
+            modal.style.display = 'block';
+            
+            // Populate project info
+            document.getElementById('modalProjectVid').textContent = currentProject.vid || 'N/A';
+            document.getElementById('modalProjectName').textContent = currentProject.business_name || 'N/A';
+            document.getElementById('modalProjectAddress').textContent = currentProject.address || 'N/A';
+            
+            // Load photos into modal
+            loadModalGallery();
+            
+            // Set default view to grid
+            setModalView('grid');
+            
+            console.log('✅ Gallery modal opened successfully');
+        }
+
+        function closeDetailedGalleryModal() {
+            const modal = document.getElementById('detailedGalleryModal');
+            modal.style.display = 'none';
+            console.log('❌ Gallery modal closed');
+        }
+
+        function setModalView(viewType) {
+            const gridBtn = document.getElementById('gridViewBtn');
+            const listBtn = document.getElementById('listViewBtn');
+            const galleryGrid = document.getElementById('modalGalleryGrid');
+            
+            if (viewType === 'grid') {
+                gridBtn.classList.add('active');
+                listBtn.classList.remove('active');
+                galleryGrid.className = 'modal-gallery-grid grid-view';
+            } else {
+                listBtn.classList.add('active');
+                gridBtn.classList.remove('active');
+                galleryGrid.className = 'modal-gallery-grid list-view';
+            }
+        }
+
+        function loadModalGallery() {
+            const galleryGrid = document.getElementById('modalGalleryGrid');
+            const filterBtns = document.querySelectorAll('.filter-btn');
+            
+            // Set up filter buttons
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const category = btn.dataset.category;
+                    filterModalGallery(category);
+                    
+                    // Update active state
+                    filterBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                });
+            });
+            
+            // Load all photos initially
+            filterModalGallery('all');
+        }
+
+        function filterModalGallery(category) {
+            const galleryGrid = document.getElementById('modalGalleryGrid');
+            
+            // Filter photos based on category
+            let filteredPhotos = projectPhotos;
+            if (category !== 'all') {
+                filteredPhotos = projectPhotos.filter(photo => {
+                    const photoCategory = extractCategoryFromPhoto(photo);
+                    return photoCategory === category;
+                });
+            }
+            
+            // Generate photo cards
+            galleryGrid.innerHTML = '';
+            if (filteredPhotos.length === 0) {
+                galleryGrid.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 40px;">No photos found for this category</p>';
+                return;
+            }
+            
+            filteredPhotos.forEach(photo => {
+                const photoCard = document.createElement('div');
+                photoCard.className = 'modal-photo-card';
+                photoCard.onclick = () => openPhotoModal(photo);
+                
+                const cleanDescription = getCleanDescription(photo);
+                
+                photoCard.innerHTML = `
+                    <img src="${photo.thumbnail_url || photo.url}" alt="Photo" class="modal-photo-image" loading="lazy">
+                    <div class="modal-photo-info">
+                        <h4>${cleanDescription}</h4>
+                    </div>
+                `;
+                
+                galleryGrid.appendChild(photoCard);
+            });
+        }
+
+        function openPhotoModal(photo) {
+            const photoModal = document.getElementById('photoModal');
+            const modalImage = document.getElementById('modalImage');
+            const modalDescription = document.getElementById('modalDescription');
+            
+            modalImage.src = photo.url;
+            modalDescription.textContent = getCleanDescription(photo);
+            
+            photoModal.style.display = 'block';
+        }
+
+        function closePhotoModal() {
+            const photoModal = document.getElementById('photoModal');
+            photoModal.style.display = 'none';
+        }
+
+        function getCleanDescription(photo) {
+            if (!photo.description) return 'No description';
+            
+            let description = '';
+            if (typeof photo.description === 'object') {
+                description = photo.description.plain_text_content || photo.description.html_content || photo.description.text || '';
+            } else {
+                description = photo.description;
+            }
+            
+            // Extract category and V-ID
+            const categoryMatch = description.match(/\[Category:\s*([^\]]+)\]/);
+            const vidMatch = description.match(/V-ID:\s*([A-Z]+-\d+)/);
+            
+            if (categoryMatch && vidMatch) {
+                const category = categoryMatch[1].replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                const vid = vidMatch[1];
+                return `${category} • V-ID: ${vid}`;
+            }
+            
+            return description.length > 50 ? description.substring(0, 50) + '...' : description;
+        }
+
+        // Initialize URL parameter checking when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Inspection session system loaded!');
+            
+            // Clear any persistent data on page load to fix persistence bug
+            console.log('🧹 Clearing persistent data on page load (fresh start)...');
+            localStorage.removeItem('currentProject');
+            localStorage.removeItem('currentVid');
+            localStorage.removeItem('activeInspection');
+            console.log('✅ Persistent data cleared - ready for manual V-ID entry');
+            
+            // Wait for DOM to be fully ready, then check parameters
+            setTimeout(() => {
+                console.log('⏰ DOM ready, checking URL parameters...');
+                checkUrlParameters();
+                checkLocalStorageProject();
+            }, 100);
+        });
+
+        // Also try on window.load as backup
+        window.addEventListener('load', function() {
+            console.log('🌐 Window fully loaded, backup parameter check...');
+            setTimeout(() => {
+                // Only run if we haven't successfully loaded yet
+                const searchInput = document.getElementById('vidInput');
+                if (searchInput && !searchInput.value) {
+                    console.log('🔄 Backup check: Input empty, trying again...');
+                    checkUrlParameters();
+                }
+            }, 200);
+        });
+
+        // Check URL parameters for auto-loading project
+        function checkUrlParameters() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const vid = urlParams.get('vid');
+            const fromGallery = urlParams.get('from_gallery');
+            
+            console.log('🔍 Checking URL parameters...');
+            console.log('📋 V-ID from URL:', vid, '| From Gallery:', fromGallery);
+            
+            // ONLY auto-load if explicitly coming back from gallery modal
+            if (vid && fromGallery === 'true') {
+                console.log('✅ Coming back from gallery - loading V-ID:', vid);
+                
+                const searchInput = document.getElementById('vidInput');
+                if (searchInput) {
+                    searchInput.value = vid;
+                    console.log('✅ V-ID loaded for gallery return:', vid);
+                    
+                    // Auto-search the project
+                    setTimeout(() => {
+                        searchProject();
+                        // Clean URL after loading
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }, 500);
+                }
+            } else {
+                console.log('🚫 No auto-load - user must manually enter V-ID');
+            }
+        }
+
+        // Disabled localStorage auto-loading to fix persistence bug
+        function checkLocalStorageProject() {
+            console.log('💾 localStorage auto-loading DISABLED to fix persistence bug');
+            console.log('🚫 Users must now manually enter V-ID each time (unless returning from gallery)');
+            
+            // Clean any old persistent data that might be causing issues
+            const oldProject = localStorage.getItem('currentProject');
+            const oldVid = localStorage.getItem('currentVid');
+            
+            if (oldProject || oldVid) {
+                console.log('🧹 Cleaning old localStorage data...');
+                localStorage.removeItem('currentProject');
+                localStorage.removeItem('currentVid');
+                console.log('✅ Old data cleaned');
+            }
+        }
+
+        // ====== CATEGORY VALIDATION FUNCTIONS ======
+        
+        // Global variable to track category selection
+        let isCategorySelected = false;
+
+        // Function called when category changes
+        function onCategoryChange() {
+            const selectedCategory = document.querySelector('input[name="photoCategory"]:checked');
+            isCategorySelected = !!selectedCategory;
+            
+            console.log('📋 Category changed:', selectedCategory ? selectedCategory.value : 'none');
+            updateUIBasedOnCategory();
+        }
+
+        // Update UI based on category selection
+        function updateUIBasedOnCategory() {
+            const categoryStatus = document.getElementById('categoryStatus');
+            const uploadText = document.getElementById('uploadText');
+            const uploadArea = document.getElementById('uploadArea');
+            const cameraBtn = document.querySelector('.camera-btn');
+            const fileInputBtn = document.querySelector('.file-input-wrapper');
+            
+            if (isCategorySelected) {
+                // Enable everything
+                categoryStatus.innerHTML = '<span class="status-success">✅ Category selected - you can now take or upload photos</span>';
+                if (uploadText) {
+                    uploadText.textContent = 'Select photos from gallery or take new photos';
+                }
+                
+                // Remove disabled classes
+                if (uploadArea) uploadArea.classList.remove('upload-disabled');
+                if (cameraBtn) cameraBtn.classList.remove('btn-disabled');
+                if (fileInputBtn) fileInputBtn.classList.remove('btn-disabled');
+                
+            } else {
+                // Disable everything
+                categoryStatus.innerHTML = '<span class="status-warning">⚠️ Category not selected - photo actions are disabled</span>';
+                if (uploadText) {
+                    uploadText.textContent = 'Please select a photo category first before uploading photos';
+                }
+                
+                // Add disabled classes
+                if (uploadArea) uploadArea.classList.add('upload-disabled');
+                if (cameraBtn) cameraBtn.classList.add('btn-disabled');
+                if (fileInputBtn) fileInputBtn.classList.add('btn-disabled');
+            }
+        }
+
+        // Function to show category section when project is loaded
+        function showCategorySelection() {
+            document.getElementById('categorySelectionSection').style.display = 'block';
+            updateUIBasedOnCategory(); // Initialize disabled state
+        }
+
+        console.log('🚀 Inspection session system loaded!');
+    </script>
+</body>
+</html>
