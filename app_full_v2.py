@@ -520,7 +520,7 @@ def auth_register(token):
             sdb.commit()
             session['uid'] = uid
             session['email'] = email
-        flash('Account created successfully!', 'success')
+            flash('Account created successfully!', 'success')
             return redirect(url_for('dashboard'))
 
     return render_template('auth_register.html', invitation=invitation)
@@ -578,7 +578,7 @@ def dashboard():
         
         if is_admin:
             # Admin sees all projects
-        projects = s.query(Project).order_by(Project.created_at.desc()).all()
+            projects = s.query(Project).order_by(Project.created_at.desc()).all()
         else:
             # Normal users only see projects they're members of
             projects = s.query(Project).join(ProjectMember).filter(
@@ -724,7 +724,7 @@ def photos_feed():
         
         if is_admin:
             # Admin sees all photos
-        stmt = select(Photo)
+            stmt = select(Photo)
             if proj:
                 stmt = stmt.where(Photo.project_id == proj)
             proj_names = {p.id: p.name for p in s.query(Project).all()}
