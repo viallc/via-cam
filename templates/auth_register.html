@@ -1,0 +1,43 @@
+
+{% extends "base.html" %}
+{% block content %}
+  <div style="max-width:420px; margin:0 auto; text-align:center;">
+    <h2>Create Account</h2>
+    
+    {% if invitation %}
+    <div class="card" style="margin-bottom:24px; text-align:left;">
+      <div class="card-header">
+        <h3 class="card-title">Invitation Details</h3>
+      </div>
+      <p><strong>Email:</strong> {{ invitation.email }}</p>
+      <p><strong>Role:</strong> 
+        <span class="chip" style="background:{% if invitation.is_admin == 'true' %}#dc2626{% else %}#059669{% endif %}; color:white; padding:4px 8px; border-radius:4px; font-size:12px;">
+          {% if invitation.is_admin == 'true' %}System Administrator{% else %}Standard User{% endif %}
+        </span>
+      </p>
+      <p><strong>Expires:</strong> {{ invitation.expires_at.strftime('%B %d, %Y at %H:%M') if invitation.expires_at else 'No expiry' }}</p>
+    </div>
+    {% endif %}
+    
+    <form method="post" style="display:grid; gap:12px; text-align:left;">
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input class="form-input" type="email" name="email" 
+               value="{{ invitation.email if invitation else '' }}" 
+               {% if invitation %}readonly{% endif %}
+               placeholder="Email" required />
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" name="password" placeholder="Choose a secure password" required />
+      </div>
+      
+      <button class="btn primary" type="submit" style="margin-top:8px;">Create Account</button>
+    </form>
+    
+    <p style="margin-top:16px; color:#9ca3af;">
+      Already have an account? <a href="{{ url_for('auth_login') }}" style="color:#f97316;">Sign in</a>
+    </p>
+  </div>
+{% endblock %}

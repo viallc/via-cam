@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>Anotar foto (Demo UI)</h2>
+  <div class="card" style="padding:16px;">
+    <div style="margin-bottom:8px; color:#9CA3AF;">Herramientas:</div>
+    <div class="toolbar" style="margin-bottom:12px;">
+      <button class="btn">✏️ Flecha</button>
+      <button class="btn">⬛ Cuadro</button>
+      <button class="btn">🅰 Texto</button>
+      <button class="btn">🎨 Color</button>
+    </div>
+    <img class="thumb" src="{{ photo.src }}" alt="Foto {{ photo.id }}">
+    <div class="toolbar" style="margin-top:12px;">
+      <button class="btn">Guardar</button>
+      <a class="btn secondary" href="{{ url_for('photo_detail', photo_id=photo.id) }}">Cancelar</a>
+    </div>
+  </div>
+{% endblock %}

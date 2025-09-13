@@ -1,0 +1,106 @@
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PICK–CAM</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script defer src="{{ url_for('static', filename='js/upload.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/camera.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/nav.js') }}"></script>
+    <script defer src="{{ url_for('static', filename='js/voice-recording.js') }}"></script>
+  </head>
+  <body>
+    <div class="app">
+      <!-- Mobile Overlay -->
+      <div class="mobile-overlay" id="mobileOverlay" onclick="toggleMobileMenu()"></div>
+      
+      <aside class="sidebar" id="sidebar">
+        <div class="brand">
+          <img src="{{ url_for('static', filename='img/icons/camera.svg') }}" alt="logo" />
+          <div class="logo-text">PICK<span class="logo-separator">–</span>CAM</div>
+        </div>
+        <div class="nav-section">
+          <div class="nav-title">Main</div>
+          <a class="navlink {% if request.path.startswith('/dashboard') %}active{% endif %}" href="{{ url_for('dashboard') }}">
+            <img src="{{ url_for('static', filename='img/icons/home.svg') }}" alt="" /> Dashboard
+          </a>
+          <a class="navlink {% if request.path.startswith('/projects') or request.path.startswith('/project') %}active{% endif %}" href="{{ url_for('project_new_form') }}">
+            <img src="{{ url_for('static', filename='img/icons/plus.svg') }}" alt="" /> New Project
+          </a>
+          <a class="navlink {% if request.path.startswith('/photos') %}active{% endif %}" href="{{ url_for('photos_feed') }}">
+            <img src="{{ url_for('static', filename='img/icons/photos.svg') }}" alt="" /> Photos
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-title">Operations</div>
+          <a class="navlink {% if request.path.startswith('/reports') %}active{% endif %}" href="{{ url_for('reports_view') }}">
+            <img src="{{ url_for('static', filename='img/icons/report.svg') }}" alt="" /> Reports
+          </a>
+          <a class="navlink {% if request.path.startswith('/map') %}active{% endif %}" href="{{ url_for('map_view') }}">
+            <img src="{{ url_for('static', filename='img/icons/map.svg') }}" alt="" /> Map
+          </a>
+          {% if session.get('is_admin') %}
+          <a class="navlink {% if request.path.startswith('/admin') %}active{% endif %}" href="{{ url_for('admin_users') }}">
+            <img src="{{ url_for('static', filename='img/icons/users.svg') }}" alt="" /> User Management
+          </a>
+          {% endif %}
+        </div>
+        <div class="nav-section">
+          <div class="nav-title">Account</div>
+          {% if session.get('email') %}
+          <div class="navlink" style="pointer-events:none; opacity:.8;">
+            <img src="{{ url_for('static', filename='img/icons/user.svg') }}" alt="" /> {{ session.get('email') }}
+          </div>
+          <a class="navlink" href="{{ url_for('auth_logout') }}">
+            <img src="{{ url_for('static', filename='img/icons/logout.svg') }}" alt="" /> Sign Out
+          </a>
+          {% else %}
+          <a class="navlink" href="{{ url_for('auth_login') }}">
+            <img src="{{ url_for('static', filename='img/icons/login.svg') }}" alt="" /> Sign In
+          </a>
+          {% endif %}
+        </div>
+      </aside>
+
+      <section class="main">
+        <header class="header">
+          <button class="mobile-menu-toggle" id="mobileMenuToggle" onclick="toggleMobileMenu()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <div class="header-title">
+            {% block header_title %}<span class="header-logo-text">PICK<span class="header-logo-separator">–</span>CAM</span>{% endblock %}
+          </div>
+          <div class="header-actions">
+            <!-- Future: notifications, user menu, etc. -->
+          </div>
+        </header>
+        <main class="container">
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+              {% for cat, msg in messages %}
+                <div class="flash">{{ msg }}</div>
+              {% endfor %}
+            {% endif %}
+          {% endwith %}
+          {% block content %}{% endblock %}
+        </main>
+      </section>
+    </div>
+
+    <script>window.currentUserEmail = "{{ session.get('email','') }}";</script>
+    <script src="{{ url_for('static', filename='js/permission-diagnostics.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/photo-editor.js') }}"></script>
+    <div id="uploadProgressWrap">
+      <div id="uploadProgress">
+        <div id="upMsg">Uploading…</div>
+        <div id="barWrap"><div id="bar"></div></div>
+      </div>
+    </div>
+  </body>
+</html>

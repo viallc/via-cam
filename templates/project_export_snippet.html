@@ -1,0 +1,29 @@
+<!-- Add these buttons somewhere in your project.html (keeping your filters form) -->
+<div class="toolbar" style="margin: 12px 0;">
+  <button class="btn" onclick="exportZip()">Exportar ZIP</button>
+  <button class="btn" onclick="exportPdf()">Exportar PDF</button>
+</div>
+<script>
+  function buildExportQS(){
+    const f1 = document.getElementById('filterForm');
+    const f2 = document.getElementById('quickForm');
+    const params = new URLSearchParams();
+    if(f1){
+      const fd1 = new FormData(f1);
+      for(const [k,v] of fd1.entries()){ if(v) params.set(k,v); }
+    }
+    if(f2){
+      const fd2 = new FormData(f2);
+      for(const [k,v] of fd2.entries()){ if(v) params.set(k,v); }
+    }
+    return params.toString();
+  }
+  function exportZip(){
+    const qs = buildExportQS();
+    location.href = `/api/projects/{{ project.id }}/export/zip` + (qs ? ('?'+qs) : '');
+  }
+  function exportPdf(){
+    const qs = buildExportQS();
+    location.href = `/api/projects/{{ project.id }}/export/pdf` + (qs ? ('?'+qs) : '');
+  }
+</script>

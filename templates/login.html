@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>Iniciar sesión</h2>
+  <form action="{{ url_for('dashboard') }}" method="get" style="max-width:420px; display:grid; gap:12px;">
+    <input class="input" type="email" placeholder="Email" required />
+    <input class="input" type="password" placeholder="Password" required />
+    <button class="btn" type="submit">Entrar</button>
+    <div style="display:grid; gap:8px; grid-template-columns:1fr 1fr;">
+      <a class="btn" href="{{ url_for('dashboard') }}">Google</a>
+      <a class="btn" href="{{ url_for('dashboard') }}">Microsoft</a>
+    </div>
+  </form>
+{% endblock %}

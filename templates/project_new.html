@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>New Project</h2>
+  <form method="post" style="max-width:720px; display:grid; gap:12px;">
+    <div class="grid" style="grid-template-columns:1fr 1fr; gap:12px;">
+      <input class="input" type="text" name="name" placeholder="Project Name" required>
+      <input class="input" type="text" name="id" placeholder="Slug (auto from name)" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]+/g,'-')">
+    </div>
+
+    <div class="grid" style="grid-template-columns:1fr 1fr; gap:12px;">
+      <select class="input" name="category" required>
+        <option value="Residential">Residential</option>
+        <option value="Commercial">Commercial</option>
+      </select>
+      <input class="input" type="text" name="zip" placeholder="ZIP (e.g. 67202)">
+    </div>
+
+    <input class="input" type="text" name="address_line" placeholder="Address (e.g. 811 E Waterman St)" id="addressInput">
+    <div class="grid" style="grid-template-columns:1fr 1fr; gap:12px;">
+      <input class="input" type="text" name="city" placeholder="City (e.g. Wichita)" id="cityInput">
+      <input class="input" type="text" name="state" placeholder="State (e.g. Kansas)" id="stateInput">
+    </div>
+
+    <!-- Address Validation Status -->
+    <div id="addressValidation" style="margin-top:12px; padding:12px; border-radius:8px; display:none;">
+      <div id="validationMessage"></div>
+      <div id="coordinatesPreview" style="font-size:12px; color:#6b7280; margin-top:8px;"></div>
+    </div>
+
+    <button class="btn" type="submit">Create</button>
+  </form>
+  <script>
+    let validationTimeout;
+    
+    const nameInput = document.querySelector('input[name=name]');
+    const slugInput = document.querySelector('input[name=id]');
+    nameInput.addEventListener('input', ()=>{
+      if(!slugInput.value){
+        slugInput.value = nameInput.value.toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+      }
+    });
+
+    // Address validation
+    document.addEventListener('DOMContentLoaded', function() {
+      const addressInput = document.getElementById('addressInput');
+      const cityInput = document.getElementById('cityInput');
+      const stateInput = document.getElementById('stateInput');
+      const zipInput = document.querySelector('input[name="zip"]');
+      
+      [addressInput, cityInput, stateInput, zipInput].forEach(input => {
+        if (input) {
+          input.addEventListener('input', debounceValidation);
+          input.addEventListener('blur', validateAddress);
+        }
+      });
+    });
+    
+    function debounceValidation() {
+      clearTimeout(validationTimeout);
+      validationTimeout = setTimeout(validateAddress, 1000);
+    }
+    
+    async function validateAddress() {
+      const address = document.getElementById('addressInput')?.value?.trim();
+      const city = document.getElementById('cityInput')?.value?.trim();
+      const state = document.getElementById('stateInput')?.value?.trim();
+      const zip = document.querySelector('input[name="zip"]')?.value?.trim();
+      
+      const validationDiv = document.getElementById('addressValidation');
+      const messageDiv = document.getElementById('validationMessage');
+      const coordsDiv = document.getElementById('coordinatesPreview');
+      
+      if (!address || !city || !state) {
+        validationDiv.style.display = 'none';
+        return;
+      }
+      
+      validationDiv.style.display = 'block';
+      validationDiv.style.background = '#fef3c7';
+      validationDiv.style.border = '1px solid #f59e0b';
+      messageDiv.innerHTML = '🔍 Validating address...';
+      coordsDiv.innerHTML = '';
+      
+      try {
+        const response = await fetch('/api/validate-address', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address, city, state, zip })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          validationDiv.style.background = '#d1fae5';
+          validationDiv.style.border = '1px solid #10b981';
+          messageDiv.innerHTML = '✅ Address found and will appear on map';
+          coordsDiv.innerHTML = `📍 Coordinates: ${result.latitude}, ${result.longitude}`;
+        } else {
+          validationDiv.style.background = '#fee2e2';
+          validationDiv.style.border = '1px solid #ef4444';
+          messageDiv.innerHTML = '❌ Address not found. Please check spelling and format.';
+          
+          if (result.suggestions && result.suggestions.length > 0) {
+            coordsDiv.innerHTML = '<strong>💡 Try:</strong> ' + result.suggestions.join(' • ');
+          } else {
+            coordsDiv.innerHTML = '💡 Tip: Use format "123 Main St" without apartment numbers';
+          }
+        }
+      } catch (error) {
+        validationDiv.style.background = '#fee2e2';
+        validationDiv.style.border = '1px solid #ef4444';
+        messageDiv.innerHTML = '⚠️ Unable to validate address';
+        coordsDiv.innerHTML = 'Please check your internet connection';
+      }
+    }
+  </script>
+{% endblock %}

@@ -1,0 +1,29 @@
+
+{% extends "base.html" %}
+{% block content %}
+  <h2>Miembros — {{ project.name }}</h2>
+  <form method="post" action="{{ url_for('invite_user', proj_id=project.id) }}" style="display:grid; grid-template-columns:2fr 1fr 1fr; gap:8px; max-width:720px;">
+    <input class="input" name="email" placeholder="email@empresa.com" required />
+    <select class="input" name="role">
+      <option value="viewer">Viewer</option>
+      <option value="contributor">Contributor</option>
+      <option value="admin">Admin</option>
+    </select>
+    <button class="btn" type="submit">Invitar</button>
+  </form>
+  <div class="card" style="margin-top:12px;">
+    <div class="body" style="font-weight:600;">Miembros del proyecto</div>
+    <div class="body">
+      <table class="table">
+        <tr><th style="text-align:left;">Email</th><th>Rol</th><th>Desde</th></tr>
+        {% for pm, u in rows %}
+          <tr>
+            <td>{{ u.email }}</td>
+            <td style="text-align:center;">{{ pm.role }}</td>
+            <td style="text-align:center;">{{ pm.created_at or '' }}</td>
+          </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </div>
+{% endblock %}

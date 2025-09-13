@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block content %}
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:24px;">
+    <div>
+      <h2>Edit Project</h2>
+      <div class="kicker">{{ project.human_code or project.category }}</div>
+    </div>
+    <div class="toolbar">
+      <a class="btn secondary" href="{{ url_for('project_view', proj_id=project.id) }}">← Back to Project</a>
+    </div>
+  </div>
+
+  <form method="post" style="max-width:720px; display:grid; gap:12px;">
+    <div class="grid" style="grid-template-columns:1fr; gap:12px;">
+      <input class="input" type="text" name="name" placeholder="Project Name" value="{{ project.name or '' }}" required>
+    </div>
+
+    <div class="grid" style="grid-template-columns:1fr 1fr; gap:12px;">
+      <input class="input" type="text" name="city" placeholder="City (e.g. Wichita)" value="{{ project.city or '' }}">
+      <input class="input" type="text" name="state" placeholder="State (e.g. Kansas)" value="{{ project.state or '' }}">
+    </div>
+
+    <input class="input" type="text" name="address_line" placeholder="Address (e.g. 811 E Waterman St)" value="{{ project.address_line or '' }}" id="addressInput">
+    
+    <div class="grid" style="grid-template-columns:1fr; gap:12px;">
+      <input class="input" type="text" name="zip" placeholder="ZIP (e.g. 67202)" value="{{ project.zip or '' }}" id="zipInput">
+    </div>
+
+    <!-- Address Validation Status -->
+    <div id="addressValidation" style="margin-top:12px; padding:12px; border-radius:8px; display:none;">
+      <div id="validationMessage"></div>
+      <div id="coordinatesPreview" style="font-size:12px; color:#6b7280; margin-top:8px;"></div>
+    </div>
+
+    <div style="display:flex; gap:12px; margin-top:12px;">
+      <button class="btn" type="submit">💾 Save Changes</button>
+      <a class="btn secondary" href="{{ url_for('project_view', proj_id=project.id) }}">Cancel</a>
+    </div>
+  </form>
+
+  <div style="margin-top:24px; padding:16px; background:#f3f4f6; border-radius:8px; color:#6b7280; font-size:14px;">
+    <strong>📍 Map Integration:</strong> After saving address changes, the project will automatically appear on the map. 
+    Complete addresses (street, city, state) work best for accurate location mapping.
+  </div>
+
+  <script>
+    let validationTimeout;
+    
+    // Add event listeners to all address fields
+    document.addEventListener('DOMContentLoaded', function() {
+      const addressInput = document.getElementById('addressInput');
+      const cityInput = document.querySelector('input[name="city"]');
+      const stateInput = document.querySelector('input[name="state"]');
+      const zipInput = document.getElementById('zipInput');
+      
+      [addressInput, cityInput, stateInput, zipInput].forEach(input => {
+        if (input) {
+          input.addEventListener('input', debounceValidation);
+          input.addEventListener('blur', validateAddress);
+        }
+      });
+      
+      // Validate on page load if fields have values
+      if (addressInput && addressInput.value.trim()) {
+        validateAddress();
+      }
+    });
+    
+    function debounceValidation() {
+      clearTimeout(validationTimeout);
+      validationTimeout = setTimeout(validateAddress, 1000); // Wait 1 second after user stops typing
+    }
+    
+    async function validateAddress() {
+      const address = document.getElementById('addressInput')?.value?.trim();
+      const city = document.querySelector('input[name="city"]')?.value?.trim();
+      const state = document.querySelector('input[name="state"]')?.value?.trim();
+      const zip = document.getElementById('zipInput')?.value?.trim();
+      
+      const validationDiv = document.getElementById('addressValidation');
+      const messageDiv = document.getElementById('validationMessage');
+      const coordsDiv = document.getElementById('coordinatesPreview');
+      
+      // Hide validation if not enough info
+      if (!address || !city || !state) {
+        validationDiv.style.display = 'none';
+        return;
+      }
+      
+      // Show loading state
+      validationDiv.style.display = 'block';
+      validationDiv.style.background = '#fef3c7';
+      validationDiv.style.border = '1px solid #f59e0b';
+      messageDiv.innerHTML = '🔍 Validating address...';
+      coordsDiv.innerHTML = '';
+      
+      try {
+        // Call our geocoding API
+        const response = await fetch('/api/validate-address', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address, city, state, zip })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          // Address found - show success
+          validationDiv.style.background = '#d1fae5';
+          validationDiv.style.border = '1px solid #10b981';
+          messageDiv.innerHTML = '✅ Address found and will appear on map';
+          coordsDiv.innerHTML = `📍 Coordinates: ${result.latitude}, ${result.longitude}`;
+        } else {
+          // Address not found - show suggestions
+          validationDiv.style.background = '#fee2e2';
+          validationDiv.style.border = '1px solid #ef4444';
+          messageDiv.innerHTML = '❌ Address not found. Please check spelling and format.';
+          
+          if (result.suggestions && result.suggestions.length > 0) {
+            coordsDiv.innerHTML = '<strong>💡 Try:</strong> ' + result.suggestions.join(' • ');
+          } else {
+            coordsDiv.innerHTML = '💡 Tip: Use format "123 Main St" without apartment numbers';
+          }
+        }
+      } catch (error) {
+        // Error occurred
+        validationDiv.style.background = '#fee2e2';
+        validationDiv.style.border = '1px solid #ef4444';
+        messageDiv.innerHTML = '⚠️ Unable to validate address';
+        coordsDiv.innerHTML = 'Please check your internet connection';
+      }
+    }
+  </script>
+{% endblock %}

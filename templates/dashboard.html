@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px;">
+    <h2 style="margin:0">Projects</h2>
+    <div class="toolbar">
+      <a class="btn btn-pill btn-cyan" href="{{ url_for('photos_feed') }}">All Photos</a>
+      <a class="btn btn-pill btn-orange" href="{{ url_for('project_new_form') }}">+ New Project</a>
+    </div>
+  </div>
+
+  <div class="stack">
+    {% for c in cards %}
+      <a class="card projectCard" href="{{ url_for('project_view', proj_id=c.p.id) }}">
+        <div class="cover">
+          <img src="{{ c.p.thumb or url_for('static', filename='img/placeholder1.svg') }}" alt="cover">
+        </div>
+
+        <div class="meta">
+          <div class="titleRow">
+            <div class="name">{{ c.p.name }}</div>
+            <div class="project-code">{{ c.p.human_code }}</div>
+          </div>
+          <div class="addr">{{ c.p.address_line or '' }}{% if c.p.city %}, {{ c.p.city }}{% endif %}{% if c.p.state %}, {{ c.p.state }}{% endif %}{% if c.p.zip %} {{ c.p.zip }}{% endif %}</div>
+          <div class="muted small">Last updated {{ c.last_updated.strftime('%b %d, %Y at %H:%M') if c.last_updated else 'Never' }}</div>
+
+          <div class="stats">
+            <div class="stat">
+              <div class="label">Photos</div>
+              <div class="value">{{ c.count }}</div>
+            </div>
+            <div class="divider"></div>
+            <div class="stat users">
+              <div class="label">Recent Users</div>
+              <div class="chips">
+                {% for u in c.users %}
+                  <span class="chip" title="{{ u.label }}">{{ u.initials }}</span>
+                {% endfor %}
+                {% if not c.users %}
+                  <span class="chip muted">--</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <div class="actionsRow">
+            <span class="btn secondary small">Google Drive</span>
+            <span class="btn primary small">📷 Upload</span>
+          </div>
+        </div>
+
+        <div class="thumbs">
+          {% if c.thumbs %}
+            {% for t in c.thumbs %}
+              <img src="{{ t }}" alt="thumb">
+            {% endfor %}
+          {% else %}
+            <div class="no-photos">
+              <div class="no-photos-icon">📷</div>
+              <div class="no-photos-text">No photos yet</div>
+            </div>
+          {% endif %}
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+{% endblock %}

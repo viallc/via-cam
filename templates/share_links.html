@@ -1,0 +1,26 @@
+
+{% extends "base.html" %}
+{% block content %}
+  <h2>Share links — {{ project.name }}</h2>
+  <form method="post" style="display:flex; gap:8px; align-items:center;">
+    <label>Días hasta expiración:</label>
+    <input class="input" name="days" type="number" value="7" min="0" style="width:120px;">
+    <button class="btn" type="submit">Crear link</button>
+    <span style="color:#9CA3AF;">(0 = sin expiración)</span>
+  </form>
+  <div class="card" style="margin-top:12px;">
+    <div class="body" style="font-weight:600;">Links existentes</div>
+    <div class="body">
+      <table class="table">
+        <tr><th>URL</th><th>Expira</th><th>Creado</th></tr>
+        {% for sl in links %}
+          <tr>
+            <td><a href="{{ url_for('share_public', proj_id=project.id, _external=True) }}?t={{ sl.token }}" target="_blank">Abrir</a></td>
+            <td>{{ sl.expires_at or 'Nunca' }}</td>
+            <td>{{ sl.created_at }}</td>
+          </tr>
+        {% endfor %}
+      </table>
+    </div>
+  </div>
+{% endblock %}

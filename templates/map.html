@@ -1,0 +1,723 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="map-container">
+  <!-- Map Sidebar -->
+  <div class="map-sidebar">
+    <div class="map-header">
+      <h2>Map</h2>
+      <div class="map-filters">
+        <input type="text" id="mapSearch" placeholder="Search for an address" class="search-input">
+        <div class="filter-row">
+          <button class="filter-btn">Start Date</button>
+          <button class="filter-btn">End Date</button>
+          <button class="filter-btn">Users ▼</button>
+          <button class="filter-btn">Groups ▼</button>
+          <button class="filter-btn">Labels ▼</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="results-header">
+      <span id="resultsCount">Loading...</span>
+    </div>
+    
+    <div class="projects-list" id="projectsList">
+      <!-- Project list will be populated by JavaScript -->
+    </div>
+  </div>
+
+  <!-- Map Display -->
+  <div class="map-display">
+    <div id="map" class="leaflet-map"></div>
+  </div>
+</div>
+
+<style>
+.map-container {
+  display: flex;
+  height: calc(100vh - 80px);
+  background: #1a1a1a;
+}
+
+.map-sidebar {
+  width: 400px;
+  background: #1f2937;
+  border-right: 1px solid #374151;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.map-header {
+  padding: 20px;
+  border-bottom: 1px solid #374151;
+}
+
+.map-header h2 {
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: #374151;
+  border: 1px solid #4b5563;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.search-input::placeholder {
+  color: #9ca3af;
+}
+
+.filter-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 8px 12px;
+  background: #374151;
+  border: 1px solid #4b5563;
+  border-radius: 6px;
+  color: #e5e7eb;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+  background: #4b5563;
+  border-color: #6b7280;
+}
+
+.results-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #374151;
+  color: #9ca3af;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.projects-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.project-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #374151;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.project-item:hover {
+  background: #4b5563;
+  transform: translateY(-1px);
+}
+
+.project-item.active {
+  background: #f97316;
+  color: #ffffff;
+}
+
+.project-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #6b7280;
+}
+
+.project-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.project-name {
+  font-weight: 600;
+  color: #ffffff;
+  font-size: 14px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.project-address {
+  color: #9ca3af;
+  font-size: 12px;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.project-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.project-code {
+  background: #1f2937;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 600;
+  color: #f97316;
+}
+
+.map-display {
+  flex: 1;
+  position: relative;
+}
+
+.leaflet-map {
+  width: 100%;
+  height: 100%;
+}
+
+/* Custom marker styles */
+.custom-marker {
+  background: #f97316;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #ffffff;
+  font-size: 12px;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+}
+
+.custom-marker.commercial {
+  background: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.custom-marker.residential {
+  background: #10b981;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.custom-marker.default {
+  background: #6b7280;
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.4);
+}
+
+/* Popup styles */
+.leaflet-popup-content-wrapper {
+  background: #1f2937;
+  color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+}
+
+.leaflet-popup-content {
+  margin: 16px;
+  line-height: 1.4;
+}
+
+.leaflet-popup-tip {
+  background: #1f2937;
+}
+
+.popup-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: #ffffff;
+  margin-bottom: 8px;
+}
+
+.popup-address {
+  color: #9ca3af;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.popup-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.popup-code {
+  background: #f97316;
+  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.popup-stats {
+  color: #e5e7eb;
+  font-size: 12px;
+}
+
+.popup-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.popup-btn {
+  padding: 8px 12px;
+  background: #f97316;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.popup-btn:hover {
+  background: #ea580c;
+}
+
+.popup-btn.secondary {
+  background: #374151;
+}
+
+.popup-btn.secondary:hover {
+  background: #4b5563;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .map-container {
+    flex-direction: column;
+    height: calc(100vh - 80px);
+  }
+  
+  .map-sidebar {
+    width: 100%;
+    height: 280px;
+    border-right: none;
+    border-bottom: 1px solid #374151;
+  }
+  
+  .map-display {
+    flex: 1;
+    min-height: 300px;
+  }
+  
+  .map-header {
+    padding: 16px;
+  }
+  
+  .map-header h2 {
+    font-size: 20px;
+    margin-bottom: 12px;
+  }
+  
+  .search-input {
+    padding: 10px 14px;
+    font-size: 16px; /* Prevent zoom on iOS */
+    margin-bottom: 12px;
+  }
+  
+  .filter-row {
+    gap: 6px;
+  }
+  
+  .filter-btn {
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+  
+  .results-header {
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+  
+  .projects-list {
+    padding: 6px;
+  }
+  
+  .project-item {
+    padding: 10px;
+    gap: 10px;
+  }
+  
+  .project-thumb {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .project-name {
+    font-size: 13px;
+  }
+  
+  .project-address {
+    font-size: 11px;
+  }
+  
+  .project-meta {
+    font-size: 10px;
+  }
+  
+  /* Make map controls more touch-friendly */
+  .leaflet-control-container {
+    font-size: 16px;
+  }
+  
+  .leaflet-control-zoom a {
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .map-container {
+    height: calc(100vh - 70px);
+  }
+  
+  .map-sidebar {
+    height: 250px;
+  }
+  
+  .map-header {
+    padding: 12px;
+  }
+  
+  .map-header h2 {
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+  
+  .search-input {
+    padding: 8px 12px;
+    margin-bottom: 10px;
+  }
+  
+  .filter-btn {
+    font-size: 10px;
+    padding: 5px 6px;
+  }
+  
+  .project-item {
+    padding: 8px;
+    gap: 8px;
+  }
+  
+  .project-thumb {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .project-name {
+    font-size: 12px;
+  }
+  
+  .project-address {
+    font-size: 10px;
+  }
+  
+  .project-meta {
+    font-size: 9px;
+    gap: 6px;
+  }
+  
+  .project-code {
+    padding: 1px 4px;
+    font-size: 9px;
+  }
+}
+</style>
+
+<!-- Leaflet CSS and JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Leaflet MarkerCluster for grouping -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
+<script>
+let map;
+let markersLayer;
+let projectsData = [];
+let activeProjectId = null;
+
+// Initialize map
+function initMap() {
+  // Create map centered on US
+  map = L.map('map').setView([39.8283, -98.5795], 4);
+  
+  // Add OpenStreetMap tiles (free)
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19
+  }).addTo(map);
+  
+  // Create marker cluster group
+  markersLayer = L.markerClusterGroup({
+    chunkedLoading: true,
+    maxClusterRadius: 50,
+    iconCreateFunction: function(cluster) {
+      const count = cluster.getChildCount();
+      let className = 'custom-cluster';
+      
+      if (count < 10) {
+        className += ' cluster-small';
+      } else if (count < 100) {
+        className += ' cluster-medium';
+      } else {
+        className += ' cluster-large';
+      }
+      
+      return L.divIcon({
+        html: `<div class="${className}">${count}</div>`,
+        className: 'cluster-icon',
+        iconSize: [40, 40]
+      });
+    }
+  });
+  
+  map.addLayer(markersLayer);
+  
+  // Load projects data
+  loadProjects();
+}
+
+// Load projects from API
+async function loadProjects() {
+  try {
+    console.log('🗺️ [FRONTEND] Fetching projects from /api/projects/map...');
+    const response = await fetch('/api/projects/map');
+    const data = await response.json();
+    
+    console.log('🗺️ [FRONTEND] Received data:', data);
+    console.log('🗺️ [FRONTEND] Projects count:', data.projects?.length || 0);
+    
+    projectsData = data.projects;
+    updateResultsCount(data.total_count);
+    renderProjectsList();
+    renderMapMarkers();
+    
+    // Auto-fit map to markers if we have projects
+    if (projectsData.length > 0) {
+      console.log('🗺️ [FRONTEND] Fitting map to', projectsData.length, 'markers');
+      const group = new L.featureGroup(markersLayer.getLayers());
+      if (group.getBounds().isValid()) {
+        map.fitBounds(group.getBounds(), { padding: [20, 20] });
+      }
+    }
+    
+  } catch (error) {
+    console.error('🗺️ [FRONTEND] Error loading projects:', error);
+    document.getElementById('resultsCount').textContent = 'Error loading projects';
+  }
+}
+
+// Update results count
+function updateResultsCount(count) {
+  const plural = count === 1 ? 'result' : 'results';
+  document.getElementById('resultsCount').textContent = `${count} ${plural}`;
+}
+
+// Render projects list in sidebar
+function renderProjectsList() {
+  const container = document.getElementById('projectsList');
+  
+  if (projectsData.length === 0) {
+    container.innerHTML = '<div style="text-align: center; color: #9ca3af; padding: 20px;">No projects with addresses found</div>';
+    return;
+  }
+  
+  container.innerHTML = projectsData.map(project => `
+    <div class="project-item" onclick="focusProject('${project.id}')" data-project-id="${project.id}">
+      <img src="${project.thumb}" alt="${project.name}" class="project-thumb" onerror="this.style.background='#6b7280'">
+      <div class="project-info">
+        <div class="project-name">${project.name}</div>
+        <div class="project-address">${project.address}</div>
+        <div class="project-meta">
+          <span class="project-code">${project.human_code}</span>
+          <span>${project.photo_count} photos</span>
+          <span>Updated ${project.last_updated}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Render markers on map
+function renderMapMarkers() {
+  console.log('🗺️ [FRONTEND] Starting renderMapMarkers with', projectsData.length, 'projects');
+  markersLayer.clearLayers();
+  
+  projectsData.forEach((project, index) => {
+    console.log(`🗺️ [FRONTEND] Processing project ${index + 1}:`, {
+      name: project.name,
+      latitude: project.latitude,
+      longitude: project.longitude,
+      category: project.category,
+      photo_count: project.photo_count
+    });
+    
+    if (!project.latitude || !project.longitude) {
+      console.warn(`🗺️ [FRONTEND] Skipping project ${project.name} - missing coordinates`);
+      return;
+    }
+    
+    const marker = L.marker([project.latitude, project.longitude], {
+      icon: L.divIcon({
+        className: 'custom-marker-wrapper',
+        html: `<div class="custom-marker ${project.category ? project.category.toLowerCase() : 'default'}">${project.photo_count}</div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+      })
+    });
+    
+    // Create popup content
+    const popupContent = `
+      <div class="popup-title">${project.name}</div>
+      <div class="popup-address">${project.address}</div>
+      <div class="popup-meta">
+        <span class="popup-code">${project.human_code}</span>
+        <span class="popup-stats">${project.photo_count} photos • ${project.last_updated}</span>
+      </div>
+      <div class="popup-actions">
+        <a href="/project/${project.id}" class="popup-btn">View Project</a>
+        <button onclick="focusProject('${project.id}')" class="popup-btn secondary">Focus</button>
+      </div>
+    `;
+    
+    marker.bindPopup(popupContent);
+    
+    // Add click handler
+    marker.on('click', () => {
+      setActiveProject(project.id);
+    });
+    
+    markersLayer.addLayer(marker);
+    console.log(`🗺️ [FRONTEND] Added marker for ${project.name} at [${project.latitude}, ${project.longitude}]`);
+  });
+  
+  console.log('🗺️ [FRONTEND] Total markers added:', markersLayer.getLayers().length);
+}
+
+// Focus on specific project
+function focusProject(projectId) {
+  const project = projectsData.find(p => p.id === projectId);
+  if (project) {
+    map.setView([project.latitude, project.longitude], 16);
+    setActiveProject(projectId);
+    
+    // Open popup for this marker
+    markersLayer.eachLayer(layer => {
+      if (layer.getLatLng().lat === project.latitude && layer.getLatLng().lng === project.longitude) {
+        layer.openPopup();
+      }
+    });
+  }
+}
+
+// Set active project in sidebar
+function setActiveProject(projectId) {
+  // Remove previous active state
+  document.querySelectorAll('.project-item').forEach(item => {
+    item.classList.remove('active');
+  });
+  
+  // Add active state to current project
+  const activeItem = document.querySelector(`[data-project-id="${projectId}"]`);
+  if (activeItem) {
+    activeItem.classList.add('active');
+    activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  
+  activeProjectId = projectId;
+}
+
+// Search functionality
+document.getElementById('mapSearch').addEventListener('input', function(e) {
+  const query = e.target.value.toLowerCase();
+  const filteredProjects = projectsData.filter(project => 
+    project.name.toLowerCase().includes(query) ||
+    project.address.toLowerCase().includes(query) ||
+    project.human_code.toLowerCase().includes(query)
+  );
+  
+  // Update display
+  updateResultsCount(filteredProjects.length);
+  
+  // Re-render with filtered data
+  const originalData = projectsData;
+  projectsData = filteredProjects;
+  renderProjectsList();
+  renderMapMarkers();
+  projectsData = originalData; // Restore original data
+});
+
+// Initialize map when page loads
+document.addEventListener('DOMContentLoaded', initMap);
+</script>
+
+<style>
+/* Cluster styling */
+.cluster-icon {
+  background: transparent;
+  border: none;
+}
+
+.custom-cluster {
+  background: #f97316;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #ffffff;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+}
+
+.cluster-small {
+  background: #10b981;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.cluster-medium {
+  background: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.cluster-large {
+  background: #ef4444;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.custom-marker-wrapper {
+  background: transparent;
+  border: none;
+}
+</style>
+{% endblock %}

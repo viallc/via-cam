@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>Compartir: {{ project.name }}</h2>
+  <div class="card" style="padding:16px;">
+    <div style="margin-bottom:8px;">Link público</div>
+    <input class="input" value="{{ share_link }}" readonly onclick="this.select()">
+    <div class="toolbar" style="margin-top:12px;">
+      <button class="btn" onclick="navigator.clipboard.writeText('{{ share_link }}')">Copiar</button>
+    </div>
+  </div>
+{% endblock %}

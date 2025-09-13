@@ -1,0 +1,28 @@
+
+{% extends "base.html" %}
+{% block content %}
+  <div style="max-width:420px; margin:0 auto; text-align:center;">
+    <h2>Sign In</h2>
+    
+    <form method="post" style="display:grid; gap:12px; text-align:left; margin-top:24px;">
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input class="form-input" type="email" name="email" placeholder="Enter your email" required />
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" name="password" placeholder="Enter your password" required />
+      </div>
+      
+      <button class="btn primary" type="submit" style="margin-top:8px;">Sign In</button>
+    </form>
+    
+    <div style="margin-top:24px; padding:16px; background:#1f2937; border:1px solid #374151; border-radius:8px; text-align:left;">
+      <h4 style="margin:0 0 8px 0; color:#f97316;">Need an Account?</h4>
+      <p style="margin:0; color:#9ca3af; font-size:14px;">
+        Account registration is by invitation only. Contact your system administrator to request access.
+      </p>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,20 @@
+
+{% extends "base.html" %}
+{% block content %}
+  <a class="btn secondary" href="{{ url_for('project_view', proj_id=project.id) }}">← Back to {{ project.name }}</a>
+  <div class="layout" style="margin-top:12px;">
+    <div class="photo-stage">
+      <img class="thumb" style="max-height:65vh; object-fit:contain;" src="{{ photo.src }}" alt="Photo {{ photo.id }}">
+      <div class="actions">
+        <a class="btn" href="{{ photo.src }}" download>Download</a>
+      </div>
+    </div>
+    <div class="meta">
+      <div><strong>Project:</strong> {{ project.name }}</div>
+      <div><strong>Author:</strong> {{ photo.author or '—' }}</div>
+      <div><strong>Date:</strong> {{ photo.date or '—' }}</div>
+      <div><strong>GPS:</strong> {{ photo.gps or '—' }}</div>
+      <div><strong>Tags:</strong> {{ photo.labels or '—' }}</div>
+    </div>
+  </div>
+{% endblock %}
