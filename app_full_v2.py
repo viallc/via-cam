@@ -2182,10 +2182,11 @@ def api_email_report():
         return jsonify(error=str(e)), 500
 
 if __name__ == "__main__":
-    # Enable network access for mobile testing
+    # Production-safe run: honor PORT env var and disable debug reloader
+    run_port = int(os.getenv('PORT', '5000'))
     app.run(
-        host='0.0.0.0',  # Listen on all network interfaces
-        port=5000,       # Use port 5000
-        debug=True,
-        threaded=True    # Enable threading for better mobile performance
+        host='0.0.0.0',
+        port=run_port,
+        debug=False,
+        threaded=True
     )
