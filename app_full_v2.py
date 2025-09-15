@@ -153,7 +153,13 @@ def _auto_bootstrap_admin_if_missing():
             email = os.getenv('INIT_ADMIN_EMAIL', 'admin@vi-a.com').strip().lower()
             pw = os.getenv('INIT_ADMIN_PASSWORD', 'admin123')
             uid = str(uuid.uuid4())
-            u = User(id=uid, email=email, password_hash=hash_password(pw), is_admin='true', is_active='true')
+            # Compute password hash without relying on global hash_password
+            try:
+                phash = hash_password(pw)  # if available
+            except Exception:
+                salt = secrets.token_hex(8)
+                phash = f"{salt}${hashlib.sha256((salt+pw).encode()).hexdigest()}"
+            u = User(id=uid, email=email, password_hash=phash, is_admin='true', is_active='true')
             sdb.add(u); sdb.commit()
             print(f"[BOOTSTRAP] Admin user created: {email}")
     except Exception as e:
