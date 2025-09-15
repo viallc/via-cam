@@ -139,6 +139,17 @@ class VoiceRecorder {
         });
       }
     };
+    // Some browsers fire these before onend when silencio prolongado
+    this.recognition.onspeechend = () => {
+      console.log('🎙️ [VOICE] Speech ended');
+      if (this.keepAlive) {
+        try { this.recognition.stop(); } catch(_e) {}
+      }
+    };
+    this.recognition.onaudioend = () => {
+      console.log('🎙️ [VOICE] Audio ended');
+      // onend will trigger afterwards; keepAlive path handled there
+    };
     
     this.recognition.onerror = (event) => {
       console.error('❌ [VOICE] Recognition error:', event.error);
