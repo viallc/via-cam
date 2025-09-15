@@ -12,6 +12,9 @@ class VoiceRecorder {
     this.currentTranscript = '';
     this.finalTranscript = '';
     this.confidence = 0;
+    this.keepAlive = false;          // keep auto-restarting if engine auto-stops
+    this.maxSessionMs = 120000;      // safety cap for a single recording session
+    this._sessionTimer = null;
     
     // Settings
     this.language = this.detectLanguage(); // Auto-detect or default to English
@@ -93,6 +96,14 @@ class VoiceRecorder {
       this.isRecording = false;
       console.log('🎙️ [VOICE] Recording ended');
       if (this.onEnd) this.onEnd();
+      // Auto-restart if user didn't explicitly stop
+      if (this.keepAlive) {
+        clearTimeout(this._sessionTimer);
+        // brief delay avoids rapid onend loops on mobile
+        setTimeout(() => {
+          try { this.recognition.start(); this.isRecording = true; } catch(_e) {}
+        }, 250);
+      }
     };
     
     this.recognition.onresult = (event) => {
@@ -139,6 +150,14 @@ class VoiceRecorder {
           message: this.getErrorMessage(event.error)
         });
       }
+
+      // On transient errors, try to resume if keepAlive is enabled
+      const transient = ['no-speech','network','aborted','audio-capture'];
+      if (this.keepAlive && transient.includes(event.error)) {
+        setTimeout(() => {
+          try { this.recognition.start(); this.isRecording = true; } catch(_e) {}
+        }, 300);
+      }
     };
     
     this.recognition.onnomatch = () => {
@@ -161,6 +180,12 @@ class VoiceRecorder {
       this.currentTranscript = '';
       this.finalTranscript = '';
       this.confidence = 0;
+      this.keepAlive = true;
+      clearTimeout(this._sessionTimer);
+      this._sessionTimer = setTimeout(() => {
+        this.keepAlive = false;
+        try { this.recognition.stop(); } catch(_e) {}
+      }, this.maxSessionMs);
       this.recognition.start();
       return true;
     } catch (error) {
@@ -173,6 +198,8 @@ class VoiceRecorder {
     if (!this.isRecording) return false;
     
     try {
+      this.keepAlive = false;
+      clearTimeout(this._sessionTimer);
       this.recognition.stop();
       return true;
     } catch (error) {
@@ -185,6 +212,8 @@ class VoiceRecorder {
     if (!this.isRecording) return false;
     
     try {
+      this.keepAlive = false;
+      clearTimeout(this._sessionTimer);
       this.recognition.abort();
       this.isRecording = false;
       return true;
