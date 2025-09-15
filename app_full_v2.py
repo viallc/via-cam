@@ -140,6 +140,27 @@ def init_db():
             s.commit()
 init_db()
 
+def _auto_bootstrap_admin_if_missing():
+    """Create an initial admin user if none exists (one-time bootstrap).
+    Email/password read from env INIT_ADMIN_EMAIL / INIT_ADMIN_PASSWORD.
+    Intended for first deploy convenience.
+    """
+    try:
+        with SessionLocal() as sdb:
+            exists = sdb.query(User).filter(User.is_admin=='true').first()
+            if exists:
+                return
+            email = os.getenv('INIT_ADMIN_EMAIL', 'admin@vi-a.com').strip().lower()
+            pw = os.getenv('INIT_ADMIN_PASSWORD', 'admin123')
+            uid = str(uuid.uuid4())
+            u = User(id=uid, email=email, password_hash=hash_password(pw), is_admin='true', is_active='true')
+            sdb.add(u); sdb.commit()
+            print(f"[BOOTSTRAP] Admin user created: {email}")
+    except Exception as e:
+        print(f"[BOOTSTRAP] Skipped admin bootstrap: {e}")
+
+_auto_bootstrap_admin_if_missing()
+
 # --- Helpers Auth ---
 def hash_password(pw:str)->str:
     salt = secrets.token_hex(8)
