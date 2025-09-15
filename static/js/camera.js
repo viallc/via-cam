@@ -15,6 +15,12 @@ class CameraCapture {
         this.isVoiceEnabled = true;
         this.currentVoiceTranscript = '';
         this.voiceStartTime = null;
+
+        // Mobile dictation via keyboard mic
+        this.isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent || '');
+        this.useKeyboardDictation = this.isMobile; // prefer OS keyboard dictation on mobile
+        this.pendingDictation = '';
+        this.keepDictation = false;
     }
 
     async startCamera(projectId) {
@@ -43,7 +49,11 @@ class CameraCapture {
             this.stream = await navigator.mediaDevices.getUserMedia(constraints);
             
             this.createCameraInterface();
-            this.setupVoiceRecording();
+            if (this.useKeyboardDictation) {
+                this.injectDictationUI();
+            } else {
+                this.setupVoiceRecording();
+            }
             this.isActive = true;
             
         } catch (error) {
@@ -110,6 +120,12 @@ class CameraCapture {
                     <div class="photos-count">
                         <span id="photosCount">${this.capturedPhotos.length}</span> photos
                     </div>
+                    
+                    ${this.useKeyboardDictation ? `
+                    <button class="camera-btn" id="dictateBtn" onclick="cameraCapture.showDictationSheet()" title="Dictate note">
+                        🗣️
+                    </button>
+                    ` : ''}
                     
                     <button class="capture-btn" onclick="cameraCapture.capturePhoto()">
                         <div class="capture-inner"></div>
@@ -393,6 +409,21 @@ class CameraCapture {
                 transform: translateY(-1px);
             }
             
+            /* Dictation drawer */
+            #dictationSheet {
+                position: fixed;
+                left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.85);
+                color: #fff;
+                padding: 12px 12px 16px;
+                z-index: 10000;
+                display: none;
+            }
+            #dictationSheet .row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+            #dictationInput { width: 100%; min-height: 40px; border-radius: 8px; border: 1px solid #444; padding: 10px; background:#0b0b0b; color:#fff; }
+            #dictationActions { display:flex; justify-content: space-between; align-items:center; margin-top:8px; }
+            #dictationBadge { position:absolute; top: -6px; left: -6px; background:#f97316; color:#fff; border-radius:10px; font-size:10px; padding:2px 6px; display:none; }
+
             @media (max-width: 768px) {
                 .camera-header {
                     padding: 12px 16px;
@@ -420,6 +451,33 @@ class CameraCapture {
         
         document.head.appendChild(styles);
     }
+
+    injectDictationUI() {
+        // Create bottom sheet for dictation
+        const sheet = document.createElement('div');
+        sheet.id = 'dictationSheet';
+        sheet.innerHTML = `
+            <div class="row" style="position:relative;">
+                <span id="dictationBadge">Saved</span>
+                <textarea id="dictationInput" placeholder="Dictate a note for this photo…"></textarea>
+            </div>
+            <div id="dictationActions">
+                <label style="display:flex; align-items:center; gap:6px; font-size:12px; opacity:0.9;">
+                    <input id="keepDictationChk" type="checkbox" ${this.keepDictation? 'checked':''}>
+                    Keep note for next photo
+                </label>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn secondary" onclick="cameraCapture.hideDictationSheet()">Close</button>
+                    <button class="btn primary" onclick="cameraCapture.saveDictation()">Save</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(sheet);
+    }
+
+    showDictationSheet() { const s=document.getElementById('dictationSheet'); if(!s) return; s.style.display='block'; const ta=document.getElementById('dictationInput'); if(ta){ ta.value=this.pendingDictation||''; setTimeout(()=>{ ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }, 0);} }
+    hideDictationSheet() { const s=document.getElementById('dictationSheet'); if(s) s.style.display='none'; }
+    saveDictation() { const ta=document.getElementById('dictationInput'); const badge=document.getElementById('dictationBadge'); const keep=document.getElementById('keepDictationChk'); this.pendingDictation = (ta&&ta.value||'').trim(); this.keepDictation = !!(keep&&keep.checked); if(badge){ badge.style.display = this.pendingDictation? 'inline-block':'none'; setTimeout(()=>{ if(badge) badge.style.display='none'; }, 1200);} this.hideDictationSheet(); }
 
     getCurrentLocation() {
         return new Promise((resolve, reject) => {
@@ -467,10 +525,19 @@ class CameraCapture {
         
         // Convert to blob
         this.canvas.toBlob((blob) => {
-            // Get voice transcript at the moment of capture
-            const voiceComment = this.voiceRecorder && this.isVoiceEnabled 
-                ? this.voiceRecorder.getFinalTranscript() 
-                : '';
+            // Get note at capture time: mobile keyboard dictation or in-app recorder
+            let voiceComment = '';
+            let voiceConfidence = 0;
+            if (this.useKeyboardDictation) {
+                voiceComment = (this.pendingDictation || '').trim();
+                voiceConfidence = voiceComment ? 0.9 : 0;
+                if (!this.keepDictation) { this.pendingDictation = ''; }
+            } else {
+                voiceComment = this.voiceRecorder && this.isVoiceEnabled 
+                    ? this.voiceRecorder.getFinalTranscript() 
+                    : '';
+                voiceConfidence = this.voiceRecorder ? this.voiceRecorder.getConfidence() : 0;
+            }
             
             const photoData = {
                 id: Date.now(),
@@ -478,7 +545,7 @@ class CameraCapture {
                 dataUrl: this.canvas.toDataURL('image/jpeg', 0.8),
                 timestamp: new Date(),
                 voiceComment: voiceComment.trim(),
-                voiceConfidence: this.voiceRecorder ? this.voiceRecorder.getConfidence() : 0,
+                voiceConfidence: voiceConfidence,
                 gps: gpsData
             };
             
@@ -491,7 +558,7 @@ class CameraCapture {
             }
             
             // Reset voice transcript for next photo
-            if (this.voiceRecorder && this.isVoiceEnabled) {
+            if (!this.useKeyboardDictation && this.voiceRecorder && this.isVoiceEnabled) {
                 this.currentVoiceTranscript = '';
                 // Restart voice recording for continuous capture
                 setTimeout(() => {
