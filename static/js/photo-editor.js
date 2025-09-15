@@ -122,22 +122,30 @@
       const move = (e)=>{ const p=this.pos(e); if(this.dragItem){ const it=this.dragItem; const w=it.x2-it.x1, h=it.y2-it.y1; it.x1=p.x-this.dragOffset.x; it.y1=p.y-this.dragOffset.y; it.x2=it.x1+w; it.y2=it.y1+h; if(it.type==='text'){ it.x2=it.x1; it.y2=it.y1; } this.redrawAll(); return; } if(!this.isDrawing) return; if(this.currentTool==='pencil'){ this.ctx.lineTo(p.x,p.y); this.ctx.stroke(); } else { this.previewShape(p.x,p.y); } };
       const up = (e)=>{ if(this.dragItem){ this.dragItem=null; this.saveSnapshot(); return; } if(!this.isDrawing) return; const p=this.pos(e); this.isDrawing=false; this.clearOverlay(); if(this.currentTool==='pencil'){ this.ctx.closePath(); } else if(this.currentTool==='rect'){ this.items.push({type:'rect',x1:this.startX,y1:this.startY,x2:p.x,y2:p.y,color:this.strokeColor,size:this.strokeSize}); this.redrawAll(); this.saveSnapshot(); } else if(this.currentTool==='circle'){ this.items.push({type:'circle',x1:this.startX,y1:this.startY,x2:p.x,y2:p.y,color:this.strokeColor,size:this.strokeSize}); this.redrawAll(); this.saveSnapshot(); } else if(this.currentTool==='arrow'){ this.items.push({type:'arrow',x1:this.startX,y1:this.startY,x2:p.x,y2:p.y,color:this.strokeColor,size:this.strokeSize}); this.redrawAll(); this.saveSnapshot(); } };
 
-      // Commit typed text on Enter and keep Text tool active
-      this.textInput && this.textInput.addEventListener('keydown', (ev)=>{
-        if (ev.key === 'Enter') {
-          ev.preventDefault();
-          const t = this.textInput.value.trim();
-          this.textInput.value = '';
-          this.textInput.style.display = 'none';
-          if (t) { this.items.push({ type:'text', x1:this.startX, y1:this.startY, x2:this.startX, y2:this.startY, color:this.strokeColor, size:this.strokeSize, text:t }); this.redrawAll(); this.saveSnapshot(); }
-          // Keep tool as text for multiple labels
-          this.currentTool = 'text';
-        } else if (ev.key === 'Escape') {
-          ev.preventDefault();
-          this.textInput.value = '';
-          this.textInput.style.display = 'none';
+      // Commit typed text (Enter/Done or blur) and keep Text tool active
+      const commitPendingText = ()=>{
+        if (!this.textInput) return;
+        if (this.textInput.style.display !== 'block') return;
+        const t = (this.textInput.value||'').trim();
+        this.textInput.value = '';
+        this.textInput.style.display = 'none';
+        if (t) {
+          this.items.push({ type:'text', x1:this.startX, y1:this.startY, x2:this.startX, y2:this.startY, color:this.strokeColor, size:this.strokeSize, text:t });
+          this.redrawAll();
+          this.saveSnapshot();
         }
-      });
+        this.currentTool = 'text';
+      };
+      this.commitPendingText = commitPendingText;
+      if (this.textInput) {
+        this.textInput.addEventListener('keydown', (ev)=>{
+          if (ev.key === 'Enter') { ev.preventDefault(); commitPendingText(); }
+          else if (ev.key === 'Escape') { ev.preventDefault(); this.textInput.value=''; this.textInput.style.display='none'; }
+        });
+        // Some mobile keyboards send keyup or just blur on Done
+        this.textInput.addEventListener('keyup', (ev)=>{ if (ev.key === 'Enter') commitPendingText(); });
+        this.textInput.addEventListener('blur', ()=>{ commitPendingText(); });
+      }
       this.canvas.addEventListener('pointerdown', down, { passive:false });
       this.canvas.addEventListener('pointermove', move, { passive:false });
       window.addEventListener('pointerup', up, { passive:false });
@@ -204,6 +212,8 @@
     pointToSegmentDistance(px,py,x1,y1,x2,y2){ const A=px-x1, B=py-y1, C=x2-x1, D=y2-y1; const dot=A*C+B*D; const len=C*C+D*D; let t=len?dot/len:-1; t=Math.max(0,Math.min(1,t)); const dx=x1+t*C-px, dy=y1+t*D-py; return Math.sqrt(dx*dx+dy*dy); }
 
     async save(){
+      // Ensure any visible text input is committed before exporting
+      try { if (this.commitPendingText) this.commitPendingText(); } catch(e) {}
       // Convert to Blob and upload as new photo
       const projId = await this.ensureProjectId();
       if (!projId) { alert('Project ID missing. Cannot save annotation.'); return; }
