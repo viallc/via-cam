@@ -1284,6 +1284,25 @@ def admin_delete_invitation(invitation_id):
     
     return redirect(url_for('admin_users'))
 
+# --- One-time bootstrap for production (create initial admin)
+@app.get('/admin/bootstrap')
+def admin_bootstrap():
+    token = request.args.get('t','')
+    expected = os.getenv('BOOTSTRAP_TOKEN','')
+    if not expected or token != expected:
+        abort(403)
+    with SessionLocal() as sdb:
+        # If an admin already exists, do nothing
+        existing_admin = sdb.query(User).filter(User.is_admin=='true').first()
+        if existing_admin:
+            return jsonify(ok=True, message='Admin already exists'), 200
+        email = os.getenv('BOOTSTRAP_ADMIN_EMAIL','admin@vi-a.com').strip().lower()
+        pw = os.getenv('BOOTSTRAP_ADMIN_PASSWORD','admin123')
+        uid = str(uuid.uuid4())
+        u = User(id=uid, email=email, password_hash=hash_password(pw), is_admin='true', is_active='true')
+        sdb.add(u); sdb.commit()
+        return jsonify(ok=True, message='Admin created', email=email), 201
+
 # --- Upload APIs ---
 
 @app.post('/api/photos/presign')
