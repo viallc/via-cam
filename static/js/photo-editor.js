@@ -39,7 +39,7 @@
       el.id = 'photoEditorModal';
       el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:10000;display:flex;flex-direction:column;';
       el.innerHTML = `
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#111;color:#fff;border-bottom:1px solid #222;">
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#111;color:#fff;border-bottom:1px solid #222;flex-wrap:wrap;overflow-x:auto;-webkit-overflow-scrolling:touch;position:sticky;top:0;z-index:10001;">
           <button data-tool="select" class="pe-btn">🖱️ Select</button>
           <button data-tool="pencil" class="pe-btn">✏️ Pencil</button>
           <button data-tool="rect" class="pe-btn">▭ Rect</button>
@@ -55,9 +55,15 @@
           <button id="peCancel" class="pe-btn" style="background:#374151;color:#fff;padding:6px 10px;border-radius:6px;">Cancel</button>
           <button id="peSave" class="pe-btn" style="background:#f97316;color:#fff;padding:6px 14px;border-radius:6px;font-weight:600;">Save</button>
         </div>
-        <div style="position:relative;flex:1;display:flex;justify-content:center;align-items:center;background:#000;">
-          <canvas id="peCanvas" style="max-width:95vw;max-height:85vh;touch-action:none;background:#111"></canvas>
-          <canvas id="peOverlay" style="position:absolute;inset:auto;background:transparent;pointer-events:none;"></canvas>
+        <div style="position:relative;flex:1;display:flex;justify-content:center;align-items:center;background:#000;overflow:auto;padding-bottom:72px;">
+          <canvas id="peCanvas" style="max-width:95vw;max-height:80vh;touch-action:none;background:#111"></canvas>
+          <canvas id="peOverlay" style="position:absolute;left:0;top:0;background:transparent;pointer-events:none;"></canvas>
+        </div>
+        <div id="peMobileBar" style="position:fixed;left:0;right:0;bottom:0;background:#111;border-top:1px solid #222;display:flex;gap:10px;justify-content:flex-end;padding:10px 14px;z-index:10002;">
+          <button id="peUndo2" class="pe-btn">↩️ Undo</button>
+          <button id="peRedo2" class="pe-btn">↪️ Redo</button>
+          <button id="peCancel2" class="pe-btn" style="background:#374151;color:#fff;padding:6px 10px;border-radius:6px;">Cancel</button>
+          <button id="peSave2" class="pe-btn" style="background:#f97316;color:#fff;padding:6px 14px;border-radius:6px;font-weight:600;">Save</button>
         </div>
       `;
       document.body.appendChild(el);
@@ -74,8 +80,20 @@
         this.textInput.setAttribute('autocomplete','off');
       }
       // Events
-      el.querySelectorAll('.pe-btn[data-tool]').forEach(btn=>{
-        btn.addEventListener('click', ()=>{ this.currentTool = btn.getAttribute('data-tool'); });
+      const toolButtons = el.querySelectorAll('.pe-btn[data-tool]');
+      const markActive = ()=>{
+        toolButtons.forEach(b=>{
+          if (b.getAttribute('data-tool') === this.currentTool) {
+            b.style.background = '#f97316';
+            b.style.color = '#fff';
+          } else {
+            b.style.background = '';
+            b.style.color = '';
+          }
+        });
+      };
+      toolButtons.forEach(btn=>{
+        btn.addEventListener('click', ()=>{ this.currentTool = btn.getAttribute('data-tool'); markActive(); });
       });
       el.querySelector('#peColor').addEventListener('input', (e)=>{ this.strokeColor = e.target.value; });
       el.querySelector('#peSize').addEventListener('change', (e)=>{ this.strokeSize = parseInt(e.target.value,10)||4; this.fontSize = Math.max(14, this.strokeSize*5); });
@@ -84,6 +102,20 @@
       el.querySelector('#peRedo').addEventListener('click', ()=> this.redo());
       el.querySelector('#peCancel').addEventListener('click', ()=> this.close());
       el.querySelector('#peSave').addEventListener('click', ()=> this.save());
+
+      // Mirror actions in bottom mobile bar
+      const mb = el.querySelector('#peMobileBar');
+      const bind = (sel, fn)=>{ const b = el.querySelector(sel); if (b) b.addEventListener('click', fn); };
+      bind('#peUndo2', ()=> this.undo());
+      bind('#peRedo2', ()=> this.redo());
+      bind('#peCancel2', ()=> this.close());
+      bind('#peSave2', ()=> this.save());
+      const updateMobileBarVisibility = ()=>{ if (mb) { mb.style.display = (window.innerWidth <= 768) ? 'flex' : 'none'; } };
+      updateMobileBarVisibility();
+      window.addEventListener('resize', updateMobileBarVisibility);
+
+      // Set initial active tool UI
+      markActive();
 
       // Pointer events
       const down = (e)=>{ e.preventDefault(); const p = this.pos(e); this.saveSnapshot(); this.isDrawing = true; this.startX=p.x; this.startY=p.y; if (this.currentTool==='select'){ const hit=this.hitTest(p.x,p.y); if(hit){ this.dragItem=hit.it; this.dragOffset={ x:p.x-hit.it.x1, y:p.y-hit.it.y1 }; this.isDrawing=false; } else { this.dragItem=null; this.isDrawing=false; } return; } if (this.currentTool==='pencil'){ this.ctx.strokeStyle=this.strokeColor; this.ctx.lineWidth=this.strokeSize; this.ctx.lineCap='round'; this.ctx.beginPath(); this.ctx.moveTo(p.x,p.y);} this.clearOverlay(); if (this.currentTool==='text' && this.textInput){ const r=this.canvas.getBoundingClientRect(); this.textInput.style.position='fixed'; this.textInput.style.left=(r.left+p.x+10)+'px'; this.textInput.style.top=(r.top+p.y-10)+'px'; this.textInput.style.display='block'; this.textInput.value=''; this.textInput.focus(); this.isDrawing=false; } };
@@ -106,9 +138,10 @@
           this.textInput.style.display = 'none';
         }
       });
-      this.canvas.addEventListener('pointerdown', down);
-      this.canvas.addEventListener('pointermove', move);
-      window.addEventListener('pointerup', up);
+      this.canvas.addEventListener('pointerdown', down, { passive:false });
+      this.canvas.addEventListener('pointermove', move, { passive:false });
+      window.addEventListener('pointerup', up, { passive:false });
+      window.addEventListener('resize', ()=> this.resizeToViewport());
     }
 
     loadImage(src){
@@ -116,7 +149,7 @@
       img.onload = ()=>{
         // Fit canvas within viewport while preserving aspect
         const maxW = Math.min(window.innerWidth*0.95, img.width);
-        const maxH = Math.min(window.innerHeight*0.85, img.height);
+        const maxH = Math.min(window.innerHeight*0.80, img.height);
         let cw = img.width, ch = img.height;
         const scale = Math.min(maxW/img.width, maxH/img.height);
         if (scale < 1) { cw = Math.round(img.width*scale); ch = Math.round(img.height*scale); }
@@ -129,6 +162,19 @@
       };
       img.crossOrigin = 'anonymous';
       img.src = src;
+    }
+
+    resizeToViewport(){
+      if (!this.baseImage) return;
+      const img = this.baseImage;
+      const maxW = Math.min(window.innerWidth*0.95, img.width);
+      const maxH = Math.min(window.innerHeight*0.80, img.height);
+      let cw = img.width, ch = img.height;
+      const scale = Math.min(maxW/img.width, maxH/img.height);
+      if (scale < 1) { cw = Math.round(img.width*scale); ch = Math.round(img.height*scale); }
+      this.canvas.width = cw; this.canvas.height = ch;
+      this.overlayCanvas.width = cw; this.overlayCanvas.height = ch;
+      this.redrawAll();
     }
 
     pos(e){
