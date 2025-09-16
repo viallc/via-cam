@@ -138,10 +138,10 @@ class CameraCapture {
                         <span class="badge" id="galleryBadge">${this.capturedPhotos.length}</span>
                     </button>
 
-                    <div style="display:flex; gap:8px; align-items:center;">
-                      <button class="camera-btn" title="Rotate" onclick="cameraCapture.rotatePreview()">↻</button>
-                      <button class="camera-btn" id="fitBtn" title="Toggle Fit/Fill" onclick="cameraCapture.toggleFit()">Fit</button>
-                      <button class="camera-btn" title="Fullscreen" onclick="cameraCapture.fullscreen()">⛶</button>
+                    <div class="camera-tools">
+                      <button class="tool-btn" title="Rotate" onclick="cameraCapture.rotatePreview()">↻</button>
+                      <button class="tool-btn" id="fitBtn" title="Toggle Fit/Fill" onclick="cameraCapture.toggleFit()">Fill</button>
+                      <button class="tool-btn" title="Fullscreen" onclick="cameraCapture.fullscreen()">⛶</button>
                     </div>
                 </div>
                 
@@ -384,6 +384,10 @@ class CameraCapture {
                 padding: 16px;
                 background: rgba(0,0,0,0.5);
             }
+
+            .camera-tools { display:flex; gap:10px; align-items:center; margin-left:8px; }
+            .tool-btn { background:#111; color:#fff; border:1px solid #333; border-radius:10px; padding:10px 12px; font-size:14px; }
+            @media (max-width: 768px) { .tool-btn { padding:12px 14px; font-size:16px; } }
             
             .camera-footer .btn {
                 padding: 12px 24px;
@@ -511,13 +515,16 @@ class CameraCapture {
         // Capture frame
         const srcW = this.video.videoWidth;
         const srcH = this.video.videoHeight;
-        const wantLandscape = (screen.orientation && /landscape/.test(screen.orientation.type)) || (window.innerWidth > window.innerHeight);
-        const frameLandscape = srcW >= srcH;
-        // Start from manual rotation
-        let deg = ((this.manualRotationDeg % 360) + 360) % 360; // 0,90,180,270
-        // If user didn't rotate manually, normalize to device orientation
-        if (deg === 0 && ((wantLandscape && !frameLandscape) || (!wantLandscape && frameLandscape))) {
-            deg = 270; // rotate opposite direction to correct orientation
+        const rect = this.video.getBoundingClientRect();
+        const viewportLandscape = rect.width >= rect.height;
+        const sensorLandscape = srcW >= srcH;
+        // Start with user's preview rotation
+        let deg = ((this.manualRotationDeg % 360) + 360) % 360; // 0/90/180/270
+        // Effective landscape after preview transform
+        const previewLandscape = (deg % 180 === 0) ? sensorLandscape : !sensorLandscape;
+        // If what you see (viewport) is landscape but the frame after preview is portrait (or vice versa), rotate 90
+        if (previewLandscape !== viewportLandscape) {
+            deg = (deg + 90) % 360;
         }
 
         const context = this.canvas.getContext('2d');
