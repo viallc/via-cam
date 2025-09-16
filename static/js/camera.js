@@ -534,7 +534,19 @@ class CameraCapture {
         // Flash effect
         this.showFlashEffect();
         
-        // Capture frame
+        // Prefer native ImageCapture when available for full-quality + EXIF orientation
+        const track = this.stream.getVideoTracks && this.stream.getVideoTracks()[0];
+        if (window.ImageCapture && track) {
+            try {
+                const ic = new ImageCapture(track);
+                const blob = await ic.takePhoto();
+                await this._finalizeCapturedBlob(blob);
+                return;
+            } catch (e) {
+                console.warn('[CAMERA] ImageCapture failed, falling back to canvas.', e);
+            }
+        }
+        // Capture frame (fallback)
         const srcW = this.video.videoWidth;
         const srcH = this.video.videoHeight;
         // Device orientation
@@ -604,7 +616,7 @@ class CameraCapture {
         }
         
         // Convert to blob
-        this.canvas.toBlob((blob) => {
+        this.canvas.toBlob(async (blob) => {
             // Get note at capture time: mobile keyboard dictation or in-app recorder
             let voiceComment = '';
             let voiceConfidence = 0;
@@ -619,19 +631,7 @@ class CameraCapture {
                 voiceConfidence = this.voiceRecorder ? this.voiceRecorder.getConfidence() : 0;
             }
             
-            const photoData = {
-                id: Date.now(),
-                blob: blob,
-                dataUrl: this.canvas.toDataURL('image/jpeg', 0.8),
-                timestamp: new Date(),
-                voiceComment: voiceComment.trim(),
-                voiceConfidence: voiceConfidence,
-                gps: gpsData
-            };
-            
-            this.capturedPhotos.push(photoData);
-            this.updateUI();
-            this.updateThumbStrip();
+            await this._finalizeCapturedBlob(blob, voiceComment, voiceConfidence, gpsData);
             
             // Log voice comment for debugging
             if (voiceComment.trim()) {
@@ -650,7 +650,31 @@ class CameraCapture {
                 }, 100);
             }
             
-        }, 'image/jpeg', 0.8);
+        }, 'image/jpeg', 0.9);
+    }
+
+    async _finalizeCapturedBlob(blob, voiceCommentOpt, voiceConfidenceOpt, gpsOpt){
+        let gpsData = gpsOpt || '';
+        if (!gpsData) {
+            try { const position = await this.getCurrentLocation(); if (position) gpsData = `${position.coords.latitude.toFixed(6)},${position.coords.longitude.toFixed(6)}`; } catch(e){}
+        }
+        const dataUrl = await new Promise((res)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.readAsDataURL(blob);});
+        let voiceComment = voiceCommentOpt || '';
+        let voiceConfidence = voiceConfidenceOpt || 0;
+        if (!voiceCommentOpt) {
+            if (this.useKeyboardDictation) {
+                voiceComment = (this.pendingDictation || '').trim();
+                voiceConfidence = voiceComment ? 0.9 : 0;
+                if (!this.keepDictation) { this.pendingDictation = ''; }
+            } else if (this.voiceRecorder && this.isVoiceEnabled) {
+                voiceComment = this.voiceRecorder.getFinalTranscript() || '';
+                voiceConfidence = this.voiceRecorder.getConfidence() || 0;
+            }
+        }
+        const photoData = { id: Date.now(), blob, dataUrl, timestamp: new Date(), voiceComment: voiceComment.trim(), voiceConfidence, gps: gpsData };
+        this.capturedPhotos.push(photoData);
+        this.updateUI();
+        this.updateThumbStrip();
     }
 
     showFlashEffect() {
@@ -1007,6 +1031,23 @@ class CameraCapture {
     toggleFit() {
         this.fitMode = this.fitMode === 'contain' ? 'cover' : 'contain';
         const v = this.video; if (!v) return; v.style.objectFit = this.fitMode; const btn = document.getElementById('fitBtn'); if (btn) btn.textContent = this.fitMode === 'contain' ? 'Fit' : 'Fill';
+    }
+
+    setupPreviewAutoRotate(){
+        const apply = ()=>{
+            try{
+                const angle = this.getDeviceAngle();
+                if (!this.video) return;
+                const deg = angle === 0 ? 0 : angle; // 0/90/180/270
+                this.video.style.transform = `rotate(${deg}deg)`;
+            }catch(e){}
+        };
+        apply();
+        if (screen && screen.orientation && screen.orientation.addEventListener) {
+            screen.orientation.addEventListener('change', apply);
+        } else {
+            window.addEventListener('orientationchange', apply);
+        }
     }
     async fullscreen() {
         const el = document.getElementById('cameraOverlay');
