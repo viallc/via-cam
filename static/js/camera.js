@@ -111,7 +111,7 @@ class CameraCapture {
                 </div>
                 
                 <div class="camera-viewport">
-                    <video id="cameraVideo" autoplay playsinline></video>
+                    <video id="cameraVideo" autoplay playsinline style="transform-origin:center center;"></video>
                     <div class="camera-overlay-grid">
                         <div class="grid-line"></div>
                         <div class="grid-line"></div>
@@ -137,6 +137,12 @@ class CameraCapture {
                         </svg>
                         <span class="badge" id="galleryBadge">${this.capturedPhotos.length}</span>
                     </button>
+
+                    <div style="display:flex; gap:8px; align-items:center;">
+                      <button class="camera-btn" title="Rotate" onclick="cameraCapture.rotatePreview()">↻</button>
+                      <button class="camera-btn" id="fitBtn" title="Toggle Fit/Fill" onclick="cameraCapture.toggleFit()">Fit</button>
+                      <button class="camera-btn" title="Fullscreen" onclick="cameraCapture.fullscreen()">⛶</button>
+                    </div>
                 </div>
                 
                 <div class="camera-footer">
@@ -509,10 +515,12 @@ class CameraCapture {
         const wantLandscape = (screen.orientation && /landscape/.test(screen.orientation.type)) || (window.innerWidth > window.innerHeight);
         const frameLandscape = srcW >= srcH;
         // If desired orientation and frame orientation disagree, rotate 90 degrees to normalize
-        let rotate = 0; // 0 or 90/-90
+        let rotate = 0; // 0 or 90
         if ((wantLandscape && !frameLandscape) || (!wantLandscape && frameLandscape)) {
             rotate = 90; // clockwise 90 is enough to swap width/height
         }
+        // Apply user manual rotation on top
+        if (this.manualRotationDeg % 180 !== 0) rotate = 90 - rotate; // ensure effect is consistent
         
         const context = this.canvas.getContext('2d');
         if (rotate === 90) {
@@ -903,6 +911,22 @@ class CameraCapture {
                 : this.currentVoiceTranscript;
             text.textContent = `"${truncated}"`;
         }
+    }
+
+    // Preview utilities
+    rotatePreview() {
+        this.manualRotationDeg = (this.manualRotationDeg + 90) % 360;
+        if (this.video) {
+            this.video.style.transform = `rotate(${this.manualRotationDeg}deg)`;
+        }
+    }
+    toggleFit() {
+        this.fitMode = this.fitMode === 'contain' ? 'cover' : 'contain';
+        const v = this.video; if (!v) return; v.style.objectFit = this.fitMode; const btn = document.getElementById('fitBtn'); if (btn) btn.textContent = this.fitMode === 'contain' ? 'Fit' : 'Fill';
+    }
+    async fullscreen() {
+        const el = document.getElementById('cameraOverlay');
+        if (el && el.requestFullscreen) { try { await el.requestFullscreen(); } catch(e){} }
     }
 }
 
