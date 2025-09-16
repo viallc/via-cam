@@ -70,21 +70,85 @@
       }
     }
 
+    async function readExifOrientation(blob){
+      try{
+        const buf = await blob.arrayBuffer();
+        const view = new DataView(buf);
+        if (view.getUint16(0, false) !== 0xFFD8) return 1; // not JPEG
+        let offset = 2;
+        const length = view.byteLength;
+        while (offset < length) {
+          const marker = view.getUint16(offset, false); offset += 2;
+          if (marker === 0xFFE1) { // APP1
+            const app1Length = view.getUint16(offset, false); // includes length bytes
+            const exifHeader = offset + 2;
+            // Check for 'Exif\0\0'
+            if (view.getUint32(exifHeader, false) === 0x45786966 && view.getUint16(exifHeader + 4, false) === 0x0000){
+              const tiffOffset = exifHeader + 6;
+              const little = view.getUint16(tiffOffset, false) === 0x4949;
+              const getShort = (o)=> view.getUint16(tiffOffset + o, little);
+              const getLong  = (o)=> view.getUint32(tiffOffset + o, little);
+              if (getShort(2) !== 0x002A) return 1;
+              let ifd = getLong(4);
+              const entries = getShort(ifd);
+              for (let i=0;i<entries;i++){
+                const entry = ifd + 2 + i*12;
+                const tag = getShort(entry);
+                if (tag === 0x0112){ // Orientation
+                  const type = getShort(entry + 2);
+                  const count = getLong(entry + 4);
+                  if (type === 3 && count === 1){
+                    const val = getShort(entry + 8);
+                    return val || 1;
+                  }
+                }
+              }
+            }
+            offset += app1Length; // skip APP1 block
+          } else if ((marker & 0xFF00) !== 0xFF00) {
+            break; // invalid
+          } else {
+            offset += view.getUint16(offset, false);
+          }
+        }
+      }catch(e){}
+      return 1;
+    }
+
     async function optimalImageDataUrl(url, maxDim=1500, quality=0.78){
       try{
         const rel = url.startsWith('http') ? new URL(url).pathname : url;
         const res = await fetch(rel, { credentials:'same-origin' });
         const blob = await res.blob();
+        const orientation = await readExifOrientation(blob); // 1,3,6,8
         const img = await new Promise((resolve,reject)=>{
           const i = new Image();
           i.onload=()=>resolve(i); i.onerror=reject;
           i.src = URL.createObjectURL(blob);
         });
-        const scale = Math.min(1, maxDim/Math.max(img.width, img.height));
-        const w = Math.max(1, Math.round(img.width*scale));
-        const h = Math.max(1, Math.round(img.height*scale));
+        // Determine target size considering orientation rotation
+        const srcW = img.width, srcH = img.height;
+        const rotated = (orientation === 6 || orientation === 8);
+        const baseW = rotated ? srcH : srcW;
+        const baseH = rotated ? srcW : srcH;
+        const scale = Math.min(1, maxDim/Math.max(baseW, baseH));
+        const w = Math.max(1, Math.round(baseW*scale));
+        const h = Math.max(1, Math.round(baseH*scale));
         const c = document.createElement('canvas'); c.width=w; c.height=h;
-        const ctx = c.getContext('2d'); ctx.drawImage(img,0,0,w,h);
+        const ctx = c.getContext('2d');
+        // Apply orientation transform
+        if (orientation === 3){ // 180
+          ctx.translate(w, h); ctx.rotate(Math.PI);
+          ctx.drawImage(img, 0, 0, w, h);
+        } else if (orientation === 6){ // 90 CW
+          ctx.translate(w, 0); ctx.rotate(Math.PI/2);
+          ctx.drawImage(img, 0, 0, h, w);
+        } else if (orientation === 8){ // 270 CW
+          ctx.translate(0, h); ctx.rotate(-Math.PI/2);
+          ctx.drawImage(img, 0, 0, h, w);
+        } else {
+          ctx.drawImage(img, 0, 0, w, h);
+        }
         const dataUrl = c.toDataURL('image/jpeg', quality);
         URL.revokeObjectURL(img.src);
         const ratio = w / h;
