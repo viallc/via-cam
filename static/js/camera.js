@@ -503,11 +503,38 @@ class CameraCapture {
         this.showFlashEffect();
         
         // Capture frame
-        this.canvas.width = this.video.videoWidth;
-        this.canvas.height = this.video.videoHeight;
+        const srcW = this.video.videoWidth;
+        const srcH = this.video.videoHeight;
+        // Compare with displayed orientation to decide rotation
+        const rect = this.video.getBoundingClientRect();
+        const dispW = rect.width;
+        const dispH = rect.height;
+        let rotate = 0; // 0, 90, -90
+        if (srcW > srcH && dispW < dispH) rotate = 90;      // frame landscape but shown portrait
+        else if (srcW < srcH && dispW > dispH) rotate = -90; // frame portrait but shown landscape
         
         const context = this.canvas.getContext('2d');
-        context.drawImage(this.video, 0, 0);
+        if (rotate === 90) {
+            this.canvas.width = srcH;
+            this.canvas.height = srcW;
+            context.save();
+            context.translate(this.canvas.width, 0);
+            context.rotate(Math.PI/2);
+            context.drawImage(this.video, 0, 0, srcW, srcH);
+            context.restore();
+        } else if (rotate === -90) {
+            this.canvas.width = srcH;
+            this.canvas.height = srcW;
+            context.save();
+            context.translate(0, this.canvas.height);
+            context.rotate(-Math.PI/2);
+            context.drawImage(this.video, 0, 0, srcW, srcH);
+            context.restore();
+        } else {
+            this.canvas.width = srcW;
+            this.canvas.height = srcH;
+            context.drawImage(this.video, 0, 0, srcW, srcH);
+        }
         
         // Get GPS location
         let gpsData = '';
