@@ -525,13 +525,19 @@ class CameraCapture {
         // Capture frame
         const srcW = this.video.videoWidth;
         const srcH = this.video.videoHeight;
-        // Determine device orientation angle and rotate based on camera orientation
+        // Device orientation
         const angle = this.getDeviceAngle(); // 0,90,180,270
+        const wantPortrait = (angle === 0 || angle === 180);
+        const sensorLandscape = srcW >= srcH;
         let deg = 0;
-        if (angle === 0) { deg = (this.rotationPreference === 'cw' ? 90 : 270); }
-        else if (angle === 180) { deg = (this.rotationPreference === 'cw' ? 270 : 90); }
-        else if (angle === 90) { deg = 0; }
-        else if (angle === 270) { deg = 180; }
+        // If desired device orientation differs from sensor aspect, rotate 90 to swap
+        if (wantPortrait === sensorLandscape) {
+            deg = (this.rotationPreference === 'cw' ? 90 : 270);
+        }
+        // If device is upside-down variants, add 180 to keep top-up
+        if (angle === 180 || angle === 270) {
+            deg = (deg + 180) % 360;
+        }
 
         const context = this.canvas.getContext('2d');
         if (deg === 90 || deg === 270) {
