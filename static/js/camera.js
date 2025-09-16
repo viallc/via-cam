@@ -505,13 +505,14 @@ class CameraCapture {
         // Capture frame
         const srcW = this.video.videoWidth;
         const srcH = this.video.videoHeight;
-        // Compare with displayed orientation to decide rotation
-        const rect = this.video.getBoundingClientRect();
-        const dispW = rect.width;
-        const dispH = rect.height;
-        let rotate = 0; // 0, 90, -90
-        if (srcW > srcH && dispW < dispH) rotate = 90;      // frame landscape but shown portrait
-        else if (srcW < srcH && dispW > dispH) rotate = -90; // frame portrait but shown landscape
+        // Decide desired orientation from device orientation at capture time
+        const wantLandscape = (screen.orientation && /landscape/.test(screen.orientation.type)) || (window.innerWidth > window.innerHeight);
+        const frameLandscape = srcW >= srcH;
+        // If desired orientation and frame orientation disagree, rotate 90 degrees to normalize
+        let rotate = 0; // 0 or 90/-90
+        if ((wantLandscape && !frameLandscape) || (!wantLandscape && frameLandscape)) {
+            rotate = 90; // clockwise 90 is enough to swap width/height
+        }
         
         const context = this.canvas.getContext('2d');
         if (rotate === 90) {
@@ -520,14 +521,6 @@ class CameraCapture {
             context.save();
             context.translate(this.canvas.width, 0);
             context.rotate(Math.PI/2);
-            context.drawImage(this.video, 0, 0, srcW, srcH);
-            context.restore();
-        } else if (rotate === -90) {
-            this.canvas.width = srcH;
-            this.canvas.height = srcW;
-            context.save();
-            context.translate(0, this.canvas.height);
-            context.rotate(-Math.PI/2);
             context.drawImage(this.video, 0, 0, srcW, srcH);
             context.restore();
         } else {
