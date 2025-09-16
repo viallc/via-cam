@@ -1279,6 +1279,7 @@ def api_dar_photos(project_id):
         
         return jsonify({
             'project_id': project_id,
+            'human_code': project.human_code or '',
             'project_name': project.name,
             'address_line': project.address_line or '',
             'city': project.city or '',
