@@ -126,7 +126,8 @@
       const addr = d.full_address || [d.address_line, d.city, d.state, d.zip].filter(Boolean).join(', ');
       $('meta').innerHTML = `
         <div class="sr-card">
-          <div><b>Project:</b> ${d.project_name||'-'} (${d.project_id})</div>
+          <div><b>Project:</b> ${d.project_name||'-'}</div>
+          <div><b>Project ID:</b> ${d.human_code || d.project_id || '-'}</div>
           <div><b>Address:</b> ${addr||'-'}</div>
           <div><b>Total photos:</b> ${d.total_photos}</div>
         </div>`;
@@ -206,7 +207,7 @@
             widths: [140, '*'],
             body: [
               [ { text:'Project Name', color:'#000000', bold:true }, { text: d.project_name || '-', color:'#111111' } ],
-              [ { text:'Project ID', color:'#000000', bold:true }, { text: d.project_id || '-', color:'#111111' } ],
+              [ { text:'Project ID', color:'#000000', bold:true }, { text: d.human_code || d.project_id || '-', color:'#111111' } ],
               [ { text:'Address', color:'#000000', bold:true }, { text: addr || '-', color:'#111111' } ],
               [ { text:'City/State', color:'#000000', bold:true }, { text: [d.city||'', d.state||''].filter(Boolean).join(', ') || '-', color:'#111111' } ],
               [ { text:'ZIP', color:'#000000', bold:true }, { text: d.zip || '-', color:'#111111' } ],
@@ -223,34 +224,23 @@
         { text: ' ', margin:[0,6,0,0], pageBreak:'after' }
       );
 
-      // Photos: two-up layout (media-page)
-      const photoRows = [];
+      // Photos: two-column flowing layout
       const entries = [];
       for(const ph of use){
         const dataUrl = await optimalImageDataUrl(ph.src || ph.url, 1200, 0.78);
         const meta = {
           stack: [
-            { text: `${ph.author||'—'}  •  ${ph.date||'—'}  •  ${ph.gps||''}`, style:'caption', margin:[0,0,0,4] },
             dataUrl ? { image: dataUrl, width: 240 } : { text:'[Image unavailable]', italics:true, color:'#6b7280' },
-            (ph.description||'').trim() ? { text: ph.description.trim(), margin:[0,4,0,0] } : {},
-            (ph.voice_comment||'').trim() ? { text: `Voice: ${ph.voice_comment.trim()}`, style:'voice' } : {}
+            (ph.description||'').trim() ? { text: ph.description.trim(), margin:[0,6,0,0] } : {},
+            (ph.voice_comment||'').trim() ? { text: `Voice: ${ph.voice_comment.trim()}`, style:'voice', margin:[0,2,0,0] } : {}
           ].filter(Boolean)
         };
-        entries.push(meta);
+        // Add spacing after each entry
+        entries.push({ stack:[ meta, { text:'', margin:[0,8,0,0] } ] });
       }
-      for (let i=0;i<entries.length;i+=2){
-        const left = entries[i];
-        const right = entries[i+1] || { text:'' };
-        photoRows.push([left, right]);
-      }
-      for (const row of photoRows){
-        content.push({
-          table: { widths: ['*','*'], body: [ row ] },
-          layout: 'noBorders',
-          margin:[0,6,0,6]
-        });
-        content.push({ canvas: [ { type:'line', x1:0, y1:0, x2:515, y2:0, lineWidth:1, lineColor:'#e5e7eb' } ], margin:[0,6,0,6] });
-      }
+      const leftCol = [], rightCol = [];
+      entries.forEach((e, idx)=>{ (idx % 2 === 0 ? leftCol : rightCol).push(e); });
+      content.push({ columns: [ leftCol, rightCol ], columnGap: 16 });
 
       // Append project notes if available, with professional formatting
       try{
@@ -268,22 +258,22 @@
             let listBlock = null;
             if (numbered){
               const items = nonEmpty.map(l=>l.replace(/^\d+\.\s*/, '')).filter(Boolean);
-              listBlock = { ol: items, margin:[0,6,0,0] };
+              listBlock = { ol: items.map(t=>({ text:t, style:'noteBody' })), margin:[0,8,0,0] };
             } else {
-              listBlock = { stack: nonEmpty.map(l=>({ text:l, margin:[0,2,0,0] })) };
+              listBlock = { stack: nonEmpty.map(l=>({ text:l, style:'noteBody', margin:[0,4,0,0] })) };
             }
 
             content.push({ text:' ', margin:[0,6,0,0], pageBreak:'after' });
             // Section with left cyan bar and light gray background
             content.push({
               table: {
-                widths: [5, '*'],
+                widths: [6, '*'],
                 body: [[
                   { text:'', fillColor:'#00CED1' },
                   { stack: [
                       { text: 'Inspection Details', style:'noteTitle' },
                       listBlock
-                    ], fillColor:'#F3F4F6', margin:[10,10,10,10] }
+                    ], fillColor:'#F3F4F6', margin:[12,14,12,14] }
                 ]]
               },
               layout: 'noBorders',
@@ -300,7 +290,8 @@
           h1: { fontSize: 18, bold: true, margin: [0,0,0,8] },
           caption: { color:'#6b7280' },
           voice: { color:'#374151', italics:true }
-        , noteTitle: { bold:true, fontSize: 13, color:'#111827', margin:[0,0,0,6] }
+        , noteTitle: { bold:true, fontSize: 14, color:'#111827', margin:[0,0,0,8] }
+        , noteBody: { color:'#111827', lineHeight: 1.35 }
         }
       };
     }
