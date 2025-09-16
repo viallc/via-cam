@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Simple Report</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.min.js"></script>
+  <style>
+    .sr-wrap{max-width:1100px;margin:24px auto;padding:16px}
+    .sr-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+    .sr-input{padding:8px 10px;border:1px solid #374151;border-radius:8px;background:#0b0b0b;color:#e5e7eb}
+    .sr-btn{background:#f97316;color:#fff;border:none;border-radius:8px;padding:8px 12px;font-weight:600;cursor:pointer}
+    .sr-btn:disabled{opacity:.6;cursor:not-allowed}
+    .sr-card{padding:12px 14px;background:#0f172a;border:1px solid #1f2937;border-radius:10px;color:#e5e7eb}
+    .sr-log{font-size:12px;color:#9ca3af;margin-top:8px;white-space:pre-wrap}
+    .sr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:12px}
+    .sr-item{position:relative;border:1px solid #1f2937;border-radius:10px;overflow:hidden;background:#0b0b0b;cursor:pointer}
+    .sr-item img{display:block;width:100%;height:120px;object-fit:cover}
+    .sr-check{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.6);color:#fff;border-radius:999px;padding:4px 6px;font-size:12px;border:1px solid #374151}
+    .sr-item.selected{outline:2px solid #f97316}
+    .sr-tag{position:absolute;bottom:8px;left:8px;background:rgba(15,23,42,.85);color:#fff;border-radius:999px;padding:3px 6px;font-size:11px;border:1px solid #1f2937;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    @media (max-width:640px){
+      .sr-controls{flex-direction:column;align-items:stretch}
+      .sr-input{width:100%}
+      .sr-item img{height:100px}
+    }
+  </style>
+</head>
+<body>
+  <div class="sr-wrap">
+    <h2 style="margin:0 0 12px">Quick Photo Report</h2>
+    <div class="sr-controls">
+      <a id="back" class="sr-btn" href="#" style="background:#374151;display:none">← Back</a>
+      <input id="proj" class="sr-input" placeholder="Project ID" value="{{ project_id }}" />
+      <select id="sort" class="sr-input">
+        <option value="newest">Sort: Newest</option>
+        <option value="tag">Sort: Tag (A–Z)</option>
+      </select>
+      <input id="emails" class="sr-input" placeholder="Emails (comma-separated)" />
+      <button id="load" class="sr-btn">Load</button>
+      <button id="pdf" class="sr-btn" disabled>Generate PDF</button>
+    </div>
+    <div id="meta"></div>
+    <div id="grid" class="sr-grid"></div>
+    <div id="log" class="sr-log"></div>
+  </div>
+
+  <script>
+    const $ = (id)=>document.getElementById(id);
+    const state = { data:null };
+
+    async function fetchProject(projectId){
+      const r = await fetch(`/api/projects/${encodeURIComponent(projectId)}/dar-photos`, { credentials:'same-origin' });
+      if(!r.ok) throw new Error(await r.text());
+      return r.json();
+    }
+
+    async function imageToDataUrl(url){
+      try{
+        // Prefer relative URLs to avoid CORS
+        const rel = url.startsWith('http') ? new URL(url).pathname : url;
+        const res = await fetch(rel, { credentials:'same-origin' });
+        const blob = await res.blob();
+        const b64 = await new Promise(reslv=>{ const fr = new FileReader(); fr.onload=()=>reslv(fr.result); fr.readAsDataURL(blob); });
+        return b64;
+      }catch(e){
+        return null;
+      }
+    }
+
+    async function optimalImageDataUrl(url, maxDim=1500, quality=0.78){
+      try{
+        const rel = url.startsWith('http') ? new URL(url).pathname : url;
+        const res = await fetch(rel, { credentials:'same-origin' });
+        const blob = await res.blob();
+        const img = await new Promise((resolve,reject)=>{
+          const i = new Image();
+          i.onload=()=>resolve(i); i.onerror=reject;
+          i.src = URL.createObjectURL(blob);
+        });
+        const scale = Math.min(1, maxDim/Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width*scale));
+        const h = Math.max(1, Math.round(img.height*scale));
+        const c = document.createElement('canvas'); c.width=w; c.height=h;
+        const ctx = c.getContext('2d'); ctx.drawImage(img,0,0,w,h);
+        const dataUrl = c.toDataURL('image/jpeg', quality);
+        URL.revokeObjectURL(img.src);
+        return dataUrl;
+      }catch(e){
+        return imageToDataUrl(url);
+      }
+    }
+
+    function generateCameraIconDataUrl(side=28, color='#00CED1'){
+      try{
+        const cs = document.createElement('canvas');
+        cs.width = side; cs.height = side;
+        const ctx = cs.getContext('2d');
+        const r = Math.round(side*0.15);
+        // body
+        ctx.fillStyle = color;
+        const w = side*0.8, h = side*0.58, x = (side-w)/2, y = (side-h)/2 + 1;
+        // rounded rect
+        ctx.beginPath();
+        ctx.moveTo(x+r, y);
+        ctx.arcTo(x+w, y, x+w, y+h, r);
+        ctx.arcTo(x+w, y+h, x, y+h, r);
+        ctx.arcTo(x, y+h, x, y, r);
+        ctx.arcTo(x, y, x+w, y, r);
+        ctx.closePath();
+        ctx.fill();
+        // top bump
+        ctx.fillRect(x + w*0.15, y - h*0.18, w*0.3, h*0.18);
+        // lens
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(side/2, side/2+1, h*0.22, 0, Math.PI*2);
+        ctx.fill();
+        return cs.toDataURL('image/png');
+      }catch(e){ return null; }
+    }
+
+    function renderMeta(d){
+      const addr = d.full_address || [d.address_line, d.city, d.state, d.zip].filter(Boolean).join(', ');
+      $('meta').innerHTML = `
+        <div class="sr-card">
+          <div><b>Project:</b> ${d.project_name||'-'} (${d.project_id})</div>
+          <div><b>Project ID:</b> ${d.human_code || d.project_id || '-'}</div>
+          <div><b>Address:</b> ${addr||'-'}</div>
+          <div><b>Total photos:</b> ${d.total_photos}</div>
+        </div>`;
+    }
+
+    function renderGrid(d){
+      const grid = $('grid');
+      const selected = new Set();
+      state.selected = selected;
+      let photos = Array.isArray(d.photos) ? [...d.photos] : [];
+      const sortCtl = $('sort');
+      if (sortCtl && sortCtl.value === 'tag') {
+        photos.sort((a,b)=> (a.labels||'').localeCompare(b.labels||''));
+      }
+      grid.innerHTML = photos.map(ph=>{
+        const safeId = ph.id.replace(/"/g,'&quot;');
+        const tagHtml = ph.labels ? `<div class="sr-tag">${ph.labels}</div>` : '';
+        return `
+          <div class="sr-item" data-id="${safeId}" onclick="toggleSelect('${safeId}')">
+            <img src="${ph.src || ph.url}" alt="${safeId}">
+            <div class="sr-check">Pick</div>
+            ${tagHtml}
+          </div>`;
+      }).join('');
+      window.toggleSelect = (id)=>{
+        const el = grid.querySelector(`.sr-item[data-id="${CSS.escape(id)}"]`);
+        if(!el) return;
+        if (selected.has(id)) { selected.delete(id); el.classList.remove('selected'); }
+        else { selected.add(id); el.classList.add('selected'); }
+        $('pdf').disabled = selected.size===0;
+      };
+    }
+
+    async function buildPdfDefinition(d){
+      const content = [];
+      const addr = d.full_address || [d.address_line, d.city, d.state, d.zip].filter(Boolean).join(', ');
+      let logo = await imageToDataUrl('/static/img/icons/camera.svg');
+      if (!logo || (logo && logo.startsWith('data:image/svg'))) {
+        logo = generateCameraIconDataUrl(28, '#00CED1');
+      }
+
+      const use = (state.selected && state.selected.size>0)
+        ? d.photos.filter(ph=>state.selected.has(ph.id))
+        : d.photos;
+
+      // Cover page
+      const printedOn = new Date().toLocaleString();
+      content.push(
+        {
+          table: {
+            widths: ['*'],
+            body: [
+              [ {
+                  columns: [
+                    { width:'*', text:'' },
+                    logo ? { image: logo, width: 28, margin:[0,2,8,0] } : { text:'', width: 0 },
+                    { text: [
+                        { text:'PICK', color:'#111111' },
+                        { text:'–', color:'#00CED1' },
+                        { text:'CAM', color:'#111111' }
+                      ], bold:true, fontSize:26 },
+                    { width:'*', text:'' }
+                  ],
+                  columnGap: 10,
+                  margin:[0,10,0,6]
+                }
+              ],
+              [ { text: 'Inspection Photo Report', color:'#f97316', bold:true, fontSize: 16, alignment:'center', margin:[0,0,0,14] } ]
+            ]
+          },
+          layout: 'noBorders',
+          margin:[0,0,0,8]
+        },
+        { canvas: [ { type:'line', x1:0, y1:0, x2:515, y2:0, lineWidth:2, lineColor:'#00CED1' } ], margin:[0,6,0,10] },
+        {
+          table: {
+            widths: [140, '*'],
+            body: [
+              [ { text:'Project Name', color:'#000000', bold:true }, { text: d.project_name || '-', color:'#111111' } ],
+              [ { text:'Project ID', color:'#000000', bold:true }, { text: d.human_code || d.project_id || '-', color:'#111111' } ],
+              [ { text:'Address', color:'#000000', bold:true }, { text: addr || '-', color:'#111111' } ],
+              [ { text:'City/State', color:'#000000', bold:true }, { text: [d.city||'', d.state||''].filter(Boolean).join(', ') || '-', color:'#111111' } ],
+              [ { text:'ZIP', color:'#000000', bold:true }, { text: d.zip || '-', color:'#111111' } ],
+              [ { text:'Total Photos', color:'#000000', bold:true }, { text: String(use.length), color:'#111111' } ],
+              [ { text:'Generated On', color:'#000000', bold:true }, { text: printedOn, color:'#111111' } ]
+            ]
+          },
+          layout: {
+            fillColor: function (rowIndex, node, columnIndex) { return rowIndex % 2 ? '#F9FAFB' : null; },
+            hLineWidth: function(){ return 0; },
+            vLineWidth: function(){ return 0; }
+          }
+        },
+        { text: ' ', margin:[0,6,0,0], pageBreak:'after' }
+      );
+
+      // Photos: two-up layout (media-page)
+      const photoRows = [];
+      const entries = [];
+      for(const ph of use){
+        const dataUrl = await optimalImageDataUrl(ph.src || ph.url, 1200, 0.78);
+        const meta = {
+          stack: [
+            dataUrl ? { image: dataUrl, width: 240 } : { text:'[Image unavailable]', italics:true, color:'#6b7280' },
+            (ph.description||'').trim() ? { text: ph.description.trim(), margin:[0,6,0,0] } : {},
+            (ph.voice_comment||'').trim() ? { text: `Voice: ${ph.voice_comment.trim()}`, style:'voice', margin:[0,2,0,0] } : {}
+          ].filter(Boolean)
+        };
+        entries.push(meta);
+      }
+      for (let i=0;i<entries.length;i+=2){
+        const left = entries[i];
+        const right = entries[i+1] || { text:'' };
+        photoRows.push([left, right]);
+      }
+      for (const row of photoRows){
+        content.push({
+          table: { widths: ['*','*'], body: [ row ] },
+          layout: 'noBorders',
+          margin:[0,6,0,6]
+        });
+        content.push({ canvas: [ { type:'line', x1:0, y1:0, x2:515, y2:0, lineWidth:1, lineColor:'#e5e7eb' } ], margin:[0,6,0,6] });
+      }
+
+      // Append project notes if available, with professional formatting
+      try{
+        const notesRes = await fetch(`/api/projects/${encodeURIComponent(d.project_id)}/notes?format=text`, { credentials:'same-origin' });
+        if (notesRes.ok){
+          const notesText = (await notesRes.text()) || '';
+          const notesTrim = notesText.trim();
+          if (notesTrim){
+            // Derive a subtitle from the first non-empty line (optional)
+            const linesRaw = notesTrim.split(/\r?\n/).map(x=>x.trim());
+            const nonEmpty = linesRaw.filter(Boolean);
+            const subtitle = nonEmpty.length ? nonEmpty[0].replace(/^\d+\.\s*/, '') : '';
+            // Build ordered list if most lines start with 1.,2.,... else as paragraphs
+            const numbered = nonEmpty.filter(l=>/^\d+\./.test(l)).length >= Math.max(2, Math.floor(nonEmpty.length*0.6));
+            let listBlock = null;
+            if (numbered){
+              const items = nonEmpty.map(l=>l.replace(/^\d+\.\s*/, '')).filter(Boolean);
+              listBlock = { ol: items.map(t=>({ text:t, style:'noteBody' })), margin:[0,8,0,0] };
+            } else {
+              listBlock = { stack: nonEmpty.map(l=>({ text:l, style:'noteBody', margin:[0,4,0,0] })) };
+            }
+
+            content.push({ text:' ', margin:[0,6,0,0], pageBreak:'after' });
+            // Section with left cyan bar and light gray background
+            content.push({
+              table: {
+                widths: [6, '*'],
+                body: [[
+                  { text:'', fillColor:'#00CED1' },
+                  { stack: [
+                      { text: 'Inspection Details', style:'noteTitle' },
+                      listBlock
+                    ], fillColor:'#F3F4F6', margin:[12,14,12,14] }
+                ]]
+              },
+              layout: 'noBorders',
+              margin:[0,0,0,0]
+            });
+          }
+        }
+      }catch(e){}
+
+      return {
+        pageMargins: [40, 36, 40, 40],
+        content,
+        styles: {
+          h1: { fontSize: 18, bold: true, margin: [0,0,0,8] },
+          caption: { color:'#6b7280' },
+          voice: { color:'#374151', italics:true }
+        , noteTitle: { bold:true, fontSize: 14, color:'#111827', margin:[0,0,0,8] }
+        , noteBody: { color:'#111827', lineHeight: 1.35 }
+        }
+      };
+    }
+
+    $('load').onclick = async ()=>{
+      const id = $('proj').value.trim();
+      $('log').textContent='';
+      if(!id){ $('log').textContent = 'Enter a project ID.'; return; }
+      $('load').disabled = true; $('pdf').disabled = true;
+      try{
+        const data = await fetchProject(id);
+        state.data = data; renderMeta(data); renderGrid(data);
+        $('pdf').disabled = true; // require selection for clarity
+        // Show back button to project
+        const back = $('back');
+        if (back && data && data.project_id) { back.href = `/project/${data.project_id}`; back.style.display = 'inline-block'; }
+      }catch(e){ $('log').textContent = 'Load error: ' + (e.message||e); }
+      finally{ $('load').disabled = false; }
+    };
+
+    // Sort control re-renders the grid
+    const sortCtl = $('sort');
+    if (sortCtl) {
+      sortCtl.addEventListener('change', ()=>{ if (state.data) renderGrid(state.data); });
+    }
+
+    $('pdf').onclick = async ()=>{
+      if(!state.data) return;
+      $('pdf').disabled = true; $('log').textContent = 'Generating PDF…';
+      try{
+        const def = await buildPdfDefinition(state.data);
+        const fileName = `report_${state.data.project_id}.pdf`;
+        const pdf = pdfMake.createPdf(def);
+        // Generate once and reuse the same blob for email and download
+        const blob = await new Promise((resolve,reject)=>{
+          pdf.getBlob((b)=>{ if(b) resolve(b); else reject(new Error('Blob failed')); });
+        });
+        const emailsVal = ($('emails') && $('emails').value || '').trim();
+        if (emailsVal) {
+          const fd = new FormData();
+          fd.append('file', blob, fileName);
+          fd.append('recipients', emailsVal);
+          fd.append('subject', `Inspection Report – ${state.data.project_name||state.data.project_id}`);
+          const res = await fetch('/api/reports/email', { method:'POST', body: fd });
+          if (!res.ok) throw new Error(await res.text());
+        }
+        // Download same blob
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(()=>URL.revokeObjectURL(url), 2000);
+        $('log').textContent = emailsVal ? 'PDF generated and emailed.' : 'PDF generated.';
+      }catch(e){ $('log').textContent = 'PDF error: ' + (e.message||e); }
+      finally{ $('pdf').disabled = false; }
+    };
+
+    // Auto-load if project_id came in query
+    if ($('proj').value.trim()) { $('load').click(); }
+  </script>
+</body>
+</html>
