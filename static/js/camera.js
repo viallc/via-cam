@@ -21,6 +21,11 @@ class CameraCapture {
         this.useKeyboardDictation = this.isMobile; // prefer OS keyboard dictation on mobile
         this.pendingDictation = '';
         this.keepDictation = false;
+
+        // Preview controls
+        this.manualRotationDeg = 0; // 0/90/180/270
+        this.fitMode = 'contain'; // 'contain' or 'cover'
+        this.rotationPreference = (typeof localStorage!== 'undefined' && localStorage.getItem('camRotatePref')) || 'cw'; // 'cw' or 'ccw'
     }
 
     async startCamera(projectId) {
@@ -141,6 +146,7 @@ class CameraCapture {
                     <div class="camera-tools">
                       <button class="tool-btn" title="Rotate" onclick="cameraCapture.rotatePreview()">↻</button>
                       <button class="tool-btn" id="fitBtn" title="Toggle Fit/Fill" onclick="cameraCapture.toggleFit()">Fill</button>
+                      <button class="tool-btn" id="fixDirBtn" title="Fix direction for this device" onclick="cameraCapture.toggleRotationPref()">Fix CW</button>
                       <button class="tool-btn" title="Fullscreen" onclick="cameraCapture.fullscreen()">⛶</button>
                     </div>
                 </div>
@@ -439,6 +445,7 @@ class CameraCapture {
                 
                 .camera-controls {
                     padding: 20px 16px;
+                    gap: 8px;
                 }
                 
                 .capture-btn {
@@ -454,6 +461,9 @@ class CameraCapture {
                 .camera-footer {
                     padding: 12px 16px;
                 }
+                .photos-count { font-size: 16px; }
+                .camera-tools { gap: 12px; }
+                .tool-btn { padding: 12px 16px; font-size: 16px; }
             }
         `;
         
@@ -524,7 +534,7 @@ class CameraCapture {
         const previewLandscape = (deg % 180 === 0) ? sensorLandscape : !sensorLandscape;
         // If what you see (viewport) is landscape but the frame after preview is portrait (or vice versa), rotate 90
         if (previewLandscape !== viewportLandscape) {
-            deg = (deg + 90) % 360;
+            deg = (deg + (this.rotationPreference === 'cw' ? 90 : 270)) % 360;
         }
 
         const context = this.canvas.getContext('2d');
@@ -939,6 +949,11 @@ class CameraCapture {
     async fullscreen() {
         const el = document.getElementById('cameraOverlay');
         if (el && el.requestFullscreen) { try { await el.requestFullscreen(); } catch(e){} }
+    }
+    toggleRotationPref() {
+        this.rotationPreference = this.rotationPreference === 'cw' ? 'ccw' : 'cw';
+        try { if (typeof localStorage !== 'undefined') localStorage.setItem('camRotatePref', this.rotationPreference); } catch(e){}
+        const b = document.getElementById('fixDirBtn'); if (b) b.textContent = this.rotationPreference === 'cw' ? 'Fix CW' : 'Fix CCW';
     }
 }
 
