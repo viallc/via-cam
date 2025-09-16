@@ -87,9 +87,10 @@
         const ctx = c.getContext('2d'); ctx.drawImage(img,0,0,w,h);
         const dataUrl = c.toDataURL('image/jpeg', quality);
         URL.revokeObjectURL(img.src);
-        return dataUrl;
+        return { dataUrl, width:w, height:h, orientation: (w>=h ? 'landscape' : 'portrait') };
       }catch(e){
-        return imageToDataUrl(url);
+        const fallback = await imageToDataUrl(url);
+        return { dataUrl: fallback, width: null, height: null, orientation: 'portrait' };
       }
     }
 
@@ -224,23 +225,42 @@
         { text: ' ', margin:[0,6,0,0], pageBreak:'after' }
       );
 
-      // Photos: two-column flowing layout
-      const entries = [];
+      // Photos: two-column flowing layout with landscape spanning full width
+      const portraits = [];
+      const flushPortraits = ()=>{
+        if (!portraits.length) return;
+        const leftCol = [], rightCol = [];
+        portraits.forEach((e, idx)=>{ (idx % 2 === 0 ? leftCol : rightCol).push(e); });
+        content.push({ columns: [ leftCol, rightCol ], columnGap: 16 });
+        portraits.length = 0;
+      };
       for(const ph of use){
-        const dataUrl = await optimalImageDataUrl(ph.src || ph.url, 1200, 0.78);
-        const meta = {
-          stack: [
-            dataUrl ? { image: dataUrl, width: 240 } : { text:'[Image unavailable]', italics:true, color:'#6b7280' },
-            (ph.description||'').trim() ? { text: ph.description.trim(), margin:[0,6,0,0] } : {},
-            (ph.voice_comment||'').trim() ? { text: `Voice: ${ph.voice_comment.trim()}`, style:'voice', margin:[0,2,0,0] } : {}
-          ].filter(Boolean)
-        };
-        // Add spacing after each entry
-        entries.push({ stack:[ meta, { text:'', margin:[0,8,0,0] } ] });
+        const img = await optimalImageDataUrl(ph.src || ph.url, 1500, 0.78);
+        if (img && img.orientation === 'landscape'){
+          // Flush any pending portrait columns first
+          flushPortraits();
+          const full = {
+            stack: [
+              img.dataUrl ? { image: img.dataUrl, width: 500 } : { text:'[Image unavailable]', italics:true, color:'#6b7280' },
+              (ph.description||'').trim() ? { text: ph.description.trim(), margin:[0,6,0,0] } : {},
+              (ph.voice_comment||'').trim() ? { text: `Voice: ${ph.voice_comment.trim()}`, style:'voice', margin:[0,2,0,0] } : {}
+            ].filter(Boolean),
+            margin:[0,6,0,10]
+          };
+          content.push(full);
+        } else {
+          const meta = {
+            stack: [
+              img && img.dataUrl ? { image: img.dataUrl, width: 240 } : { text:'[Image unavailable]', italics:true, color:'#6b7280' },
+              (ph.description||'').trim() ? { text: ph.description.trim(), margin:[0,6,0,0] } : {},
+              (ph.voice_comment||'').trim() ? { text: `Voice: ${ph.voice_comment.trim()}`, style:'voice', margin:[0,2,0,0] } : {}
+            ].filter(Boolean)
+          };
+          portraits.push({ stack:[ meta, { text:'', margin:[0,8,0,0] } ] });
+        }
       }
-      const leftCol = [], rightCol = [];
-      entries.forEach((e, idx)=>{ (idx % 2 === 0 ? leftCol : rightCol).push(e); });
-      content.push({ columns: [ leftCol, rightCol ], columnGap: 16 });
+      // Flush any remaining portrait entries
+      flushPortraits();
 
       // Append project notes if available, with professional formatting
       try{
