@@ -26,6 +26,56 @@ class CameraCapture {
         this.manualRotationDeg = 0; // 0/90/180/270
         this.fitMode = 'contain'; // 'contain' or 'cover'
         this.rotationPreference = (typeof localStorage!== 'undefined' && localStorage.getItem('camRotatePref')) || 'cw'; // 'cw' or 'ccw'
+
+        // 🔧 Preferencia para forzar horizontal si el usuario lo desea
+        this.forceLandscape = false;
+
+        // 🧭 cache de orientación
+        this._lastOrientationMode = null;
+    }
+
+    // 🧭 Detecta orientación del dispositivo
+    detectOrientation() {
+        const angle = (screen.orientation && typeof screen.orientation.angle === 'number')
+            ? screen.orientation.angle
+            : (typeof window.orientation === 'number' ? window.orientation : 0);
+
+        switch ((angle + 360) % 360) {
+            case 0:   return 'portrait';
+            case 90:  return 'landscape-right';
+            case 180: return 'portrait-upside';
+            case 270: return 'landscape-left';
+            default:  return 'portrait';
+        }
+    }
+
+    // 🧭 Aplica corrección visual al <video> según orientación
+    applyVideoOrientationTransform() {
+        if (!this.video) return;
+        const mode = this.detectOrientation();
+        this._lastOrientationMode = mode;
+        // No rotamos la imagen física de la cámara; solo la vista previa si el navegador la entrega cruzada.
+        // Regla simple: en portrait, gira 90° para que se vea "horizontal" si quieres previsualizar así.
+        if (mode.startsWith('landscape')) {
+            this.video.style.transform = `rotate(${this.manualRotationDeg}deg)`;
+        } else {
+            const base = 90; // girar 90° cuando el dispositivo está en portrait
+            this.video.style.transform = `rotate(${(base + this.manualRotationDeg) % 360}deg)`;
+        }
+    }
+
+    // 🧭 Listener de orientación
+    attachOrientationListeners() {
+        const handler = () => {
+            this.applyVideoOrientationTransform();
+        };
+        window.addEventListener('orientationchange', handler);
+        // algunos navegadores emiten cambios en screen.orientation también
+        if (screen.orientation && typeof screen.orientation.addEventListener === 'function') {
+            screen.orientation.addEventListener('change', handler);
+        }
+        // fallback por si nada dispara
+        window.addEventListener('resize', handler);
     }
 
     async startCamera(projectId) {
@@ -60,6 +110,10 @@ class CameraCapture {
                 this.setupVoiceRecording();
             }
             this.isActive = true;
+
+            // 🧭 Aplica orientación inicial y listeners
+            this.applyVideoOrientationTransform();
+            this.attachOrientationListeners();
             
         } catch (error) {
             console.error('Camera access denied:', error);
@@ -148,6 +202,8 @@ class CameraCapture {
                       <button class="tool-btn" id="fitBtn" title="Toggle Fit/Fill" onclick="cameraCapture.toggleFit()">Fill</button>
                       <button class="tool-btn" id="fixDirBtn" title="Fix direction for this device" onclick="cameraCapture.toggleRotationPref()">Fix CW</button>
                       <button class="tool-btn" title="Fullscreen" onclick="cameraCapture.fullscreen()">⛶</button>
+                      <!-- 🔧 Botón para forzar horizontal en la captura -->
+                      <button class="tool-btn" title="Force Landscape (capture)" onclick="cameraCapture.forceLandscape = !cameraCapture.forceLandscape; this.classList.toggle('active', cameraCapture.forceLandscape);">↔ Force</button>
                     </div>
                 </div>
                 
@@ -285,7 +341,10 @@ class CameraCapture {
             #cameraVideo {
                 width: 100%;
                 height: 100%;
-                object-fit: cover;
+                /* 🔧 evita recortes: full frame visible */
+                object-fit: contain;
+                background: #000;
+                transform-origin: center center;
             }
             
             .camera-overlay-grid {
@@ -393,6 +452,7 @@ class CameraCapture {
 
             .camera-tools { display:flex; gap:10px; align-items:center; margin-left:8px; }
             .tool-btn { background:#111; color:#fff; border:1px solid #333; border-radius:10px; padding:10px 12px; font-size:14px; }
+            .tool-btn.active { outline: 2px solid #f97316; }
             @media (max-width: 768px) { .tool-btn { padding:12px 14px; font-size:16px; } }
             
             .camera-footer .btn {
@@ -530,11 +590,27 @@ class CameraCapture {
         const sensorLandscape = srcW >= srcH;
         // Start with user's preview rotation
         let deg = ((this.manualRotationDeg % 360) + 360) % 360; // 0/90/180/270
+
         // Effective landscape after preview transform
         const previewLandscape = (deg % 180 === 0) ? sensorLandscape : !sensorLandscape;
         // If what you see (viewport) is landscape but the frame after preview is portrait (or vice versa), rotate 90
         if (previewLandscape !== viewportLandscape) {
             deg = (deg + (this.rotationPreference === 'cw' ? 90 : 270)) % 360;
+        }
+
+        // 🔧 Forzar horizontal si el dispositivo está en portrait o el usuario lo pide
+        const orientationMode = this.detectOrientation();
+        const shouldForceLandscape = this.forceLandscape || !orientationMode.startsWith('landscape');
+        if (shouldForceLandscape) {
+            // ajusta para que el canvas salga horizontal
+            if (deg % 180 === 0 && srcH > srcW) {
+                // sensor reporta vertical; gira 90
+                deg = (deg + (this.rotationPreference === 'cw' ? 90 : 270)) % 360;
+            } else if (deg % 180 !== 0 && srcW > srcH) {
+                // ya está girado, pero ancho mayor; no hacer nada
+            } else if (deg % 180 === 0 && srcW > srcH) {
+                // ya horizontal, no hacer nada
+            }
         }
 
         const context = this.canvas.getContext('2d');
@@ -679,6 +755,9 @@ class CameraCapture {
             });
             
             this.video.srcObject = this.stream;
+
+            // 🧭 re-aplica la orientación tras el cambio de cámara
+            this.applyVideoOrientationTransform();
             
         } catch (error) {
             console.error('Failed to switch camera:', error);
@@ -938,9 +1017,8 @@ class CameraCapture {
     // Preview utilities
     rotatePreview() {
         this.manualRotationDeg = (this.manualRotationDeg + 90) % 360;
-        if (this.video) {
-            this.video.style.transform = `rotate(${this.manualRotationDeg}deg)`;
-        }
+        // 🔧 Al rotar manualmente, vuelve a aplicar la transformación que respeta la orientación
+        this.applyVideoOrientationTransform();
     }
     toggleFit() {
         this.fitMode = this.fitMode === 'contain' ? 'cover' : 'contain';
