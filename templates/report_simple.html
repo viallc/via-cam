@@ -87,7 +87,8 @@
         const ctx = c.getContext('2d'); ctx.drawImage(img,0,0,w,h);
         const dataUrl = c.toDataURL('image/jpeg', quality);
         URL.revokeObjectURL(img.src);
-        return { dataUrl, width:w, height:h, orientation: (w>=h ? 'landscape' : 'portrait') };
+        const ratio = w / h;
+        return { dataUrl, width:w, height:h, ratio, orientation: (ratio >= 1.2 ? 'landscape' : 'portrait') };
       }catch(e){
         const fallback = await imageToDataUrl(url);
         return { dataUrl: fallback, width: null, height: null, orientation: 'portrait' };
