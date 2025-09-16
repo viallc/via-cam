@@ -517,7 +517,7 @@ class CameraCapture {
         let deg = ((this.manualRotationDeg % 360) + 360) % 360; // 0,90,180,270
         // If user didn't rotate manually, normalize to device orientation
         if (deg === 0 && ((wantLandscape && !frameLandscape) || (!wantLandscape && frameLandscape))) {
-            deg = 90;
+            deg = 270; // rotate opposite direction to correct orientation
         }
 
         const context = this.canvas.getContext('2d');
