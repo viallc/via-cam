@@ -91,11 +91,15 @@ class CameraCapture {
                     </button>
                     <div class="camera-title-section">
                         <h3>Take Photos</h3>
+                        ${this.useKeyboardDictation ? '' : `
                         <div class="voice-status" id="voiceStatus">
                             <div class="voice-indicator" id="voiceIndicator"></div>
                             <span id="voiceText">Voice recording ready</span>
-                        </div>
+                        </div>`}
                     </div>
+                    ${this.useKeyboardDictation ? `
+                    <button class="camera-btn" id="dictateBtnTop" onclick="cameraCapture.showDictationSheet()" title="Dictate note">🗣️</button>
+                    ` : `
                     <button class="camera-btn voice-toggle-btn" onclick="cameraCapture.toggleVoiceRecording()" id="voiceToggleBtn">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
@@ -103,7 +107,7 @@ class CameraCapture {
                             <line x1="12" y1="19" x2="12" y2="23"></line>
                             <line x1="8" y1="23" x2="16" y2="23"></line>
                         </svg>
-                    </button>
+                    </button>`}
                 </div>
                 
                 <div class="camera-viewport">
@@ -120,12 +124,6 @@ class CameraCapture {
                     <div class="photos-count">
                         <span id="photosCount">${this.capturedPhotos.length}</span> photos
                     </div>
-                    
-                    ${this.useKeyboardDictation ? `
-                    <button class="camera-btn" id="dictateBtn" onclick="cameraCapture.showDictationSheet()" title="Dictate note">
-                        🗣️
-                    </button>
-                    ` : ''}
                     
                     <button class="capture-btn" onclick="cameraCapture.capturePhoto()">
                         <div class="capture-inner"></div>
