@@ -511,31 +511,36 @@ class CameraCapture {
         // Capture frame
         const srcW = this.video.videoWidth;
         const srcH = this.video.videoHeight;
-        // Decide desired orientation from device orientation at capture time
         const wantLandscape = (screen.orientation && /landscape/.test(screen.orientation.type)) || (window.innerWidth > window.innerHeight);
         const frameLandscape = srcW >= srcH;
-        // If desired orientation and frame orientation disagree, rotate 90 degrees to normalize
-        let rotate = 0; // 0 or 90
-        if ((wantLandscape && !frameLandscape) || (!wantLandscape && frameLandscape)) {
-            rotate = 90; // clockwise 90 is enough to swap width/height
+        // Start from manual rotation
+        let deg = ((this.manualRotationDeg % 360) + 360) % 360; // 0,90,180,270
+        // If user didn't rotate manually, normalize to device orientation
+        if (deg === 0 && ((wantLandscape && !frameLandscape) || (!wantLandscape && frameLandscape))) {
+            deg = 90;
         }
-        // Apply user manual rotation on top
-        if (this.manualRotationDeg % 180 !== 0) rotate = 90 - rotate; // ensure effect is consistent
-        
+
         const context = this.canvas.getContext('2d');
-        if (rotate === 90) {
+        if (deg === 90 || deg === 270) {
             this.canvas.width = srcH;
             this.canvas.height = srcW;
-            context.save();
-            context.translate(this.canvas.width, 0);
-            context.rotate(Math.PI/2);
-            context.drawImage(this.video, 0, 0, srcW, srcH);
-            context.restore();
         } else {
             this.canvas.width = srcW;
             this.canvas.height = srcH;
-            context.drawImage(this.video, 0, 0, srcW, srcH);
         }
+        context.save();
+        if (deg === 90) {
+            context.translate(this.canvas.width, 0);
+            context.rotate(Math.PI/2);
+        } else if (deg === 180) {
+            context.translate(this.canvas.width, this.canvas.height);
+            context.rotate(Math.PI);
+        } else if (deg === 270) {
+            context.translate(0, this.canvas.height);
+            context.rotate(-Math.PI/2);
+        }
+        context.drawImage(this.video, 0, 0, srcW, srcH);
+        context.restore();
         
         // Get GPS location
         let gpsData = '';
