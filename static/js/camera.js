@@ -151,6 +151,8 @@ class CameraCapture {
                     </div>
                 </div>
                 
+                <div id="thumbStrip" class="camera-thumb-strip"></div>
+
                 <div class="camera-footer">
                     <button class="btn secondary" onclick="cameraCapture.closeCamera()">Cancel</button>
                     <button class="btn primary" onclick="cameraCapture.uploadAll()" ${this.capturedPhotos.length === 0 ? 'disabled' : ''}>
@@ -394,6 +396,16 @@ class CameraCapture {
             .camera-tools { display:flex; gap:10px; align-items:center; margin-left:8px; }
             .tool-btn { background:#111; color:#fff; border:1px solid #333; border-radius:10px; padding:10px 12px; font-size:14px; }
             @media (max-width: 768px) { .tool-btn { padding:12px 14px; font-size:16px; } }
+
+            .camera-thumb-strip { display:flex; gap:8px; overflow-x:auto; padding:8px 14px; background:rgba(0,0,0,0.5); }
+            .camera-thumb-strip img.cam-thumb { width:64px; height:64px; object-fit:cover; border-radius:6px; border:1px solid #333; flex:0 0 auto; cursor:pointer; }
+
+            /* Gallery overlay */
+            #galleryOverlay { position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:10050; display:none; align-items:center; justify-content:center; }
+            #galleryOverlay img { max-width:92vw; max-height:88vh; border-radius:8px; }
+            #galClose { position:absolute; top:12px; left:12px; background:#111; color:#fff; border:1px solid #333; border-radius:8px; padding:8px 10px; }
+            #galPrev, #galNext { position:absolute; top:50%; transform:translateY(-50%); background:#111; color:#fff; border:1px solid #333; border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center; }
+            #galPrev { left:10px; } #galNext { right:10px; }
             
             .camera-footer .btn {
                 padding: 12px 24px;
@@ -619,6 +631,7 @@ class CameraCapture {
             
             this.capturedPhotos.push(photoData);
             this.updateUI();
+            this.updateThumbStrip();
             
             // Log voice comment for debugging
             if (voiceComment.trim()) {
@@ -677,6 +690,35 @@ class CameraCapture {
             uploadBtn.disabled = this.capturedPhotos.length === 0;
             uploadBtn.textContent = `Upload ${this.capturedPhotos.length} Photo${this.capturedPhotos.length !== 1 ? 's' : ''}`;
         }
+    }
+
+    updateThumbStrip() {
+        const strip = document.getElementById('thumbStrip');
+        if (!strip) return;
+        strip.innerHTML = '';
+        for (let i=0;i<this.capturedPhotos.length;i++){
+            const p = this.capturedPhotos[i];
+            const img = document.createElement('img');
+            img.src = p.dataUrl; img.className = 'cam-thumb'; img.title = new Date(p.timestamp).toLocaleTimeString();
+            img.onclick = ()=> this.openGallery(i);
+            strip.appendChild(img);
+        }
+    }
+
+    openGallery(startIndex){
+        if (!this.capturedPhotos.length) return;
+        let idx = Math.max(0, Math.min(startIndex||0, this.capturedPhotos.length-1));
+        let ov = document.getElementById('galleryOverlay');
+        if (!ov){
+            ov = document.createElement('div'); ov.id='galleryOverlay';
+            ov.innerHTML = `<button id="galClose">Close</button><button id="galPrev">‹</button><img id="galImg"/><button id="galNext">›</button>`;
+            document.body.appendChild(ov);
+            document.getElementById('galClose').onclick = ()=> ov.style.display='none';
+            document.getElementById('galPrev').onclick = ()=> show(idx-1);
+            document.getElementById('galNext').onclick = ()=> show(idx+1);
+        }
+        const show = (i)=>{ idx = (i+this.capturedPhotos.length)%this.capturedPhotos.length; const ph=this.capturedPhotos[idx]; const img=document.getElementById('galImg'); img.src=ph.dataUrl; };
+        show(idx); ov.style.display='flex';
     }
 
     async switchCamera() {
