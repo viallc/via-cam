@@ -560,6 +560,24 @@ class CameraCapture {
         }
         context.drawImage(this.video, 0, 0, srcW, srcH);
         context.restore();
+
+        // Heuristic guard: ensure final orientation matches device intent
+        const needPortrait = wantPortrait;
+        const gotPortrait = this.canvas.height >= this.canvas.width;
+        if (needPortrait !== gotPortrait) {
+            // rotate canvas 90 degrees more
+            const tmp = document.createElement('canvas');
+            tmp.width = this.canvas.width; tmp.height = this.canvas.height;
+            tmp.getContext('2d').drawImage(this.canvas, 0, 0);
+            const w2 = this.canvas.height, h2 = this.canvas.width;
+            this.canvas.width = w2; this.canvas.height = h2;
+            const ctx2 = this.canvas.getContext('2d');
+            ctx2.save();
+            ctx2.translate(this.canvas.width, 0);
+            ctx2.rotate(Math.PI/2);
+            ctx2.drawImage(tmp, 0, 0);
+            ctx2.restore();
+        }
         
         // Get GPS location
         let gpsData = '';
