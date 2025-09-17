@@ -540,68 +540,26 @@ class CameraCapture {
             try {
                 const ic = new ImageCapture(track);
                 const blob = await ic.takePhoto();
+                console.log('📷 [CAMERA] Photo captured using ImageCapture API (preserves EXIF)');
                 await this._finalizeCapturedBlob(blob);
                 return;
             } catch (e) {
                 console.warn('[CAMERA] ImageCapture failed, falling back to canvas.', e);
             }
         }
-        // Capture frame (fallback)
+        
+        // Simplified canvas fallback - capture as-is without complex rotation
         const srcW = this.video.videoWidth;
         const srcH = this.video.videoHeight;
-        // Device orientation
-        const angle = this.getDeviceAngle(); // 0,90,180,270
-        const wantPortrait = (angle === 0 || angle === 180);
-        const sensorLandscape = srcW >= srcH;
-        let deg = 0;
-        // If desired device orientation differs from sensor aspect, rotate 90 to swap
-        if (wantPortrait === sensorLandscape) {
-            deg = (this.rotationPreference === 'cw' ? 90 : 270);
-        }
-        // If device is upside-down variants, add 180 to keep top-up
-        if (angle === 180 || angle === 270) {
-            deg = (deg + 180) % 360;
-        }
-
+        
+        this.canvas.width = srcW;
+        this.canvas.height = srcH;
         const context = this.canvas.getContext('2d');
-        if (deg === 90 || deg === 270) {
-            this.canvas.width = srcH;
-            this.canvas.height = srcW;
-        } else {
-            this.canvas.width = srcW;
-            this.canvas.height = srcH;
-        }
-        context.save();
-        if (deg === 90) {
-            context.translate(this.canvas.width, 0);
-            context.rotate(Math.PI/2);
-        } else if (deg === 180) {
-            context.translate(this.canvas.width, this.canvas.height);
-            context.rotate(Math.PI);
-        } else if (deg === 270) {
-            context.translate(0, this.canvas.height);
-            context.rotate(-Math.PI/2);
-        }
+        
+        // Draw video frame directly without rotation
         context.drawImage(this.video, 0, 0, srcW, srcH);
-        context.restore();
-
-        // Heuristic guard: ensure final orientation matches device intent
-        const needPortrait = wantPortrait;
-        const gotPortrait = this.canvas.height >= this.canvas.width;
-        if (needPortrait !== gotPortrait) {
-            // rotate canvas 90 degrees more
-            const tmp = document.createElement('canvas');
-            tmp.width = this.canvas.width; tmp.height = this.canvas.height;
-            tmp.getContext('2d').drawImage(this.canvas, 0, 0);
-            const w2 = this.canvas.height, h2 = this.canvas.width;
-            this.canvas.width = w2; this.canvas.height = h2;
-            const ctx2 = this.canvas.getContext('2d');
-            ctx2.save();
-            ctx2.translate(this.canvas.width, 0);
-            ctx2.rotate(Math.PI/2);
-            ctx2.drawImage(tmp, 0, 0);
-            ctx2.restore();
-        }
+        
+        console.log(`📷 [CAMERA] Photo captured using canvas fallback (${srcW}x${srcH})`)
         
         // Get GPS location
         let gpsData = '';
