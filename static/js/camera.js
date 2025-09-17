@@ -237,10 +237,12 @@ class CameraCapture {
                 display: none;
             }
             
-            /* Landscape orientation adjustments */
-            @media screen and (orientation: landscape) and (max-height: 600px) {
+            /* Landscape orientation adjustments - Multiple conditions to catch all mobile landscape scenarios */
+            @media screen and (orientation: landscape) and (max-height: 600px),
+                   screen and (orientation: landscape) and (max-width: 1024px),
+                   screen and (max-height: 500px) and (min-width: 600px) {
                 .camera-container {
-                    flex-direction: row;
+                    flex-direction: row !important;
                     height: 100vh; /* Full viewport height */
                 }
                 
@@ -258,16 +260,18 @@ class CameraCapture {
                     position: relative;
                 }
                 
+                /* FORCE HIDE portrait mode controls */
                 .camera-controls {
-                    display: none; /* Hide bottom controls in landscape */
+                    display: none !important; /* Force hide bottom controls */
                 }
                 
                 .camera-footer {
-                    display: none; /* Hide bottom footer in landscape */
+                    display: none !important; /* Force hide bottom footer */
                 }
                 
+                /* Show sidebar controls */
                 .camera-controls-sidebar {
-                    display: flex;
+                    display: flex !important;
                     flex-direction: column;
                     justify-content: center;
                     align-items: center;
@@ -359,6 +363,15 @@ class CameraCapture {
                 
                 .btn-sidebar:hover {
                     transform: scale(1.05);
+                }
+                
+                /* Additional safeguards - hide any potential duplicate elements */
+                .camera-main-content .camera-controls,
+                .camera-main-content .camera-footer {
+                    display: none !important;
+                    visibility: hidden !important;
+                    opacity: 0 !important;
+                    pointer-events: none !important;
                 }
             }
             
