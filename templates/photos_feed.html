@@ -565,15 +565,34 @@
     function applyRotation(imgEl, baseDeg, extraDeg){ const total=((baseDeg+extraDeg)%360+360)%360; imgEl.style.transform = `rotate(${total}deg)`; }
     async function fixPreviewOrientation(url, imgEl, photoId){
       try{
+        // Check if this is a recently captured photo (within last 5 minutes)
+        // These photos were captured with our new orientation-aware logic
+        const photoTimestamp = photoId ? parseInt(photoId) : 0;
+        const now = Date.now();
+        const fiveMinutesAgo = now - (5 * 60 * 1000);
+        
+        if (photoTimestamp > fiveMinutesAgo) {
+          // Recent photo - likely captured with our new logic, don't apply EXIF corrections
+          console.log('📷 [ORIENTATION] Skipping EXIF correction for recent photo:', photoId);
+          const extra = getStoredRotation(photoId);
+          photoRotationMap[photoId] = extra; 
+          applyRotation(imgEl, 0, extra); // No base rotation, only user manual rotation
+          return;
+        }
+        
+        // Older photo - apply EXIF corrections as before
         const rel = url.startsWith('http') ? new URL(url).pathname : url;
         const res = await fetch(rel, { credentials:'same-origin' });
         if(!res.ok) return;
         const blob = await res.blob();
         const angle = await readExifOrientation(blob); // 1,3,6,8
-        let base=0; if(angle===6) base=90; else if(angle===8) base=270; else if(angle===3) base=180; imgEl.dataset.baseRot = String(base);
+        let base=0; if(angle===6) base=90; else if(angle===8) base=270; else if(angle===3) base=180; 
+        imgEl.dataset.baseRot = String(base);
         const extra=getStoredRotation(photoId);
         photoRotationMap[photoId]=extra; applyRotation(imgEl, base, extra);
-      }catch(e){}
+      }catch(e){
+        console.warn('Error in fixPreviewOrientation:', e);
+      }
     }
     function rotateModalPhoto(){
       if(!currentPhotoData) return; const id=currentPhotoData.id; const img=document.getElementById('modalPhoto');
