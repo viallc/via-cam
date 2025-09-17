@@ -638,6 +638,179 @@ class CameraCapture {
         
         document.head.appendChild(styles);
     }
+    
+    addGalleryStyles() {
+        // Check if gallery styles already exist
+        if (document.getElementById('cameraGalleryStyles')) return;
+        
+        const styles = document.createElement('style');
+        styles.id = 'cameraGalleryStyles';
+        styles.textContent = `
+            #cameraGalleryOverlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.95);
+                z-index: 10000;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .camera-gallery-container {
+                display: flex;
+                flex-direction: column;
+                height: 100%;
+                color: white;
+                padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            }
+            
+            .camera-gallery-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 20px;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+            }
+            
+            .camera-gallery-header h3 {
+                margin: 0;
+                font-size: 18px;
+                font-weight: 500;
+            }
+            
+            .camera-gallery-grid {
+                flex: 1;
+                padding: 20px;
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 15px;
+                overflow-y: auto;
+            }
+            
+            .camera-gallery-item {
+                position: relative;
+                aspect-ratio: 1;
+                border-radius: 8px;
+                overflow: hidden;
+                cursor: pointer;
+                transition: transform 0.2s ease;
+            }
+            
+            .camera-gallery-item:hover {
+                transform: scale(1.05);
+            }
+            
+            .camera-gallery-item img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+            
+            .camera-gallery-item-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: linear-gradient(135deg, rgba(0,0,0,0.3) 0%, transparent 50%, rgba(0,0,0,0.3) 100%);
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                padding: 8px;
+            }
+            
+            .camera-gallery-item-number {
+                background: rgba(0,0,0,0.6);
+                color: white;
+                padding: 4px 8px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 500;
+            }
+            
+            .camera-gallery-delete-btn {
+                background: rgba(255,59,48,0.8);
+                color: white;
+                border: none;
+                width: 28px;
+                height: 28px;
+                border-radius: 14px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+            
+            .camera-gallery-delete-btn:hover {
+                background: rgba(255,59,48,1);
+                transform: scale(1.1);
+            }
+            
+            .camera-gallery-footer {
+                display: flex;
+                justify-content: space-between;
+                padding: 20px;
+                border-top: 1px solid rgba(255,255,255,0.1);
+                gap: 15px;
+            }
+            
+            .camera-gallery-footer .btn {
+                flex: 1;
+                padding: 12px 20px;
+                border-radius: 8px;
+                border: none;
+                font-size: 16px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+            
+            .camera-gallery-footer .btn.secondary {
+                background: rgba(255,255,255,0.1);
+                color: white;
+            }
+            
+            .camera-gallery-footer .btn.primary {
+                background: #ff6b35;
+                color: white;
+            }
+            
+            .camera-gallery-footer .btn:hover {
+                transform: translateY(-1px);
+            }
+            
+            /* Mobile responsive adjustments */
+            @media (max-width: 480px) {
+                .camera-gallery-grid {
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 10px;
+                    padding: 15px;
+                }
+                
+                .camera-gallery-header {
+                    padding: 15px;
+                }
+                
+                .camera-gallery-header h3 {
+                    font-size: 16px;
+                }
+                
+                .camera-gallery-footer {
+                    padding: 15px;
+                    flex-direction: column;
+                }
+                
+                .camera-gallery-footer .btn {
+                    padding: 14px;
+                }
+            }
+        `;
+        
+        document.head.appendChild(styles);
+    }
 
     injectDictationUI() {
         // Create bottom sheet for dictation
@@ -876,8 +1049,87 @@ class CameraCapture {
     }
 
     showGallery() {
-        // TODO: Implement gallery view to review captured photos
-        alert(`You have captured ${this.capturedPhotos.length} photos. Gallery view coming soon!`);
+        if (this.capturedPhotos.length === 0) return;
+        
+        // Create gallery overlay
+        const galleryOverlay = document.createElement('div');
+        galleryOverlay.id = 'cameraGalleryOverlay';
+        galleryOverlay.innerHTML = `
+            <div class="camera-gallery-container">
+                <div class="camera-gallery-header">
+                    <button class="camera-btn" onclick="cameraCapture.closeGallery()">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m15 18-6-6 6-6"/>
+                        </svg>
+                    </button>
+                    <h3>Captured Photos (${this.capturedPhotos.length})</h3>
+                    <button class="camera-btn" onclick="cameraCapture.closeGallery()">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="camera-gallery-grid" id="cameraGalleryGrid">
+                    ${this.capturedPhotos.map((photo, index) => `
+                        <div class="camera-gallery-item" onclick="cameraCapture.viewGalleryPhoto(${index})">
+                            <img src="${photo.dataUrl}" alt="Photo ${index + 1}">
+                            <div class="camera-gallery-item-overlay">
+                                <span class="camera-gallery-item-number">${index + 1}</span>
+                                <button class="camera-gallery-delete-btn" onclick="event.stopPropagation(); cameraCapture.deleteGalleryPhoto(${index})">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                        <path d="m19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="camera-gallery-footer">
+                    <button class="btn secondary" onclick="cameraCapture.closeGallery()">
+                        Back to Camera
+                    </button>
+                    <button class="btn primary" onclick="cameraCapture.uploadAllFromGallery()">
+                        Upload All (${this.capturedPhotos.length})
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(galleryOverlay);
+        this.addGalleryStyles();
+    }
+    
+    closeGallery() {
+        const overlay = document.getElementById('cameraGalleryOverlay');
+        if (overlay) {
+            overlay.remove();
+        }
+    }
+    
+    viewGalleryPhoto(index) {
+        // TODO: Implement individual photo viewer
+        console.log('View photo at index:', index);
+    }
+    
+    deleteGalleryPhoto(index) {
+        if (confirm('Delete this photo?')) {
+            this.capturedPhotos.splice(index, 1);
+            this.updateUI();
+            this.closeGallery();
+            // Reopen gallery with updated photos
+            if (this.capturedPhotos.length > 0) {
+                setTimeout(() => this.showGallery(), 100);
+            }
+        }
+    }
+    
+    uploadAllFromGallery() {
+        this.closeGallery();
+        this.uploadAll();
     }
 
     async uploadAll() {
