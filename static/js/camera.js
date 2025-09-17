@@ -215,6 +215,13 @@ class CameraCapture {
                 z-index: 9999;
                 display: flex;
                 flex-direction: column;
+                /* Mobile safe area adjustments - occupy full viewport */
+                padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+                /* Ensure full screen coverage */
+                height: 100vh;
+                width: 100vw;
+                /* Push content to use full available space */
+                box-sizing: border-box;
             }
             
             .camera-container {
@@ -222,6 +229,9 @@ class CameraCapture {
                 flex-direction: column;
                 height: 100%;
                 color: white;
+                /* Ensure container uses all available space within safe areas */
+                min-height: 100%;
+                box-sizing: border-box;
             }
             
             /* Main content area (portrait mode by default) */
@@ -457,6 +467,13 @@ class CameraCapture {
                 flex: 1;
                 position: relative;
                 overflow: hidden;
+                /* Ensure viewport uses maximum available space */
+                min-height: 0; /* Allow flex shrinking */
+                width: 100%;
+                background: #000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
             
             #cameraVideo {
@@ -632,6 +649,43 @@ class CameraCapture {
                 
                 .camera-footer {
                     padding: 12px 16px;
+                }
+            }
+            
+            /* Mobile camera safe area adjustments */
+            @media (max-width: 768px) {
+                #cameraOverlay {
+                    /* Force full viewport usage on mobile */
+                    height: 100vh !important;
+                    width: 100vw !important;
+                    /* Remove padding to allow container to handle safe areas */
+                    padding: 0 !important;
+                }
+                
+                .camera-container {
+                    /* Apply safe areas to the container instead */
+                    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+                    /* Use full available height */
+                    height: 100vh;
+                    box-sizing: border-box;
+                }
+                
+                .camera-header {
+                    /* Ensure header starts at safe area top */
+                    margin-top: 0;
+                    flex-shrink: 0;
+                }
+                
+                .camera-viewport {
+                    /* Maximize camera viewport on mobile */
+                    flex: 1;
+                    min-height: 50vh;
+                    max-height: calc(100vh - 200px); /* Leave space for controls */
+                }
+                
+                .camera-controls, .camera-footer {
+                    /* Ensure controls don't get cut off */
+                    flex-shrink: 0;
                 }
             }
         `;
