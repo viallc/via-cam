@@ -145,6 +145,41 @@ class CameraCapture {
                         Upload ${this.capturedPhotos.length} Photo${this.capturedPhotos.length !== 1 ? 's' : ''}
                     </button>
                 </div>
+                
+                <!-- Side controls (visible only in landscape) -->
+                <div class="camera-controls-sidebar">
+                    <div class="photos-count-sidebar">
+                        <span id="photosCountSidebar">${this.capturedPhotos.length}</span>
+                        <small>photos</small>
+                    </div>
+                    
+                    <button class="capture-btn capture-btn-sidebar" onclick="cameraCapture.capturePhoto()">
+                        <div class="capture-inner"></div>
+                    </button>
+                    
+                    <button class="camera-btn gallery-btn-sidebar" onclick="cameraCapture.showGallery()" ${this.capturedPhotos.length === 0 ? 'disabled' : ''}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21,15 16,10 5,21"></polyline>
+                        </svg>
+                        <span class="badge" id="galleryBadgeSidebar">${this.capturedPhotos.length}</span>
+                    </button>
+                    
+                    <button class="btn secondary btn-sidebar" onclick="cameraCapture.closeCamera()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                    <button class="btn primary btn-sidebar" onclick="cameraCapture.uploadAll()" ${this.capturedPhotos.length === 0 ? 'disabled' : ''}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
+                </div>
             </div>
         `;
         
@@ -184,6 +219,119 @@ class CameraCapture {
                 flex-direction: column;
                 height: 100%;
                 color: white;
+            }
+            
+            /* Hide sidebar controls by default (portrait mode) */
+            .camera-controls-sidebar {
+                display: none;
+            }
+            
+            /* Landscape orientation adjustments */
+            @media screen and (orientation: landscape) and (max-height: 600px) {
+                .camera-container {
+                    flex-direction: row;
+                }
+                
+                .camera-controls {
+                    display: none; /* Hide bottom controls in landscape */
+                }
+                
+                .camera-footer {
+                    display: none; /* Hide bottom footer in landscape */
+                }
+                
+                .camera-controls-sidebar {
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                    width: 100px;
+                    background: rgba(0,0,0,0.8);
+                    padding: 15px 8px;
+                    gap: 15px;
+                    border-left: 1px solid rgba(255,255,255,0.1);
+                }
+                
+                .photos-count-sidebar {
+                    text-align: center;
+                    font-size: 12px;
+                    color: rgba(255,255,255,0.8);
+                }
+                
+                .photos-count-sidebar span {
+                    display: block;
+                    font-size: 16px;
+                    font-weight: bold;
+                    color: white;
+                }
+                
+                .capture-btn-sidebar {
+                    width: 60px;
+                    height: 60px;
+                    border: 3px solid white;
+                    border-radius: 50%;
+                    background: none;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                
+                .capture-btn-sidebar:hover {
+                    transform: scale(1.05);
+                }
+                
+                .capture-btn-sidebar:active {
+                    transform: scale(0.95);
+                }
+                
+                .gallery-btn-sidebar {
+                    width: 40px;
+                    height: 40px;
+                    border: 1px solid rgba(255,255,255,0.3);
+                    border-radius: 8px;
+                    background: rgba(255,255,255,0.1);
+                    color: white;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    position: relative;
+                }
+                
+                .gallery-btn-sidebar:hover {
+                    background: rgba(255,255,255,0.2);
+                }
+                
+                .btn-sidebar {
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 8px;
+                    border: none;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 12px;
+                    padding: 0;
+                }
+                
+                .btn-sidebar.secondary {
+                    background: rgba(255,255,255,0.1);
+                    color: white;
+                }
+                
+                .btn-sidebar.primary {
+                    background: #ff6b35;
+                    color: white;
+                }
+                
+                .btn-sidebar:hover {
+                    transform: scale(1.05);
+                }
             }
             
             .camera-header {
@@ -625,6 +773,7 @@ class CameraCapture {
     }
 
     updateUI() {
+        // Update bottom controls (portrait mode)
         const countEl = document.getElementById('photosCount');
         const badgeEl = document.getElementById('galleryBadge');
         const galleryBtn = document.querySelector('.gallery-btn');
@@ -639,6 +788,23 @@ class CameraCapture {
         if (uploadBtn) {
             uploadBtn.disabled = this.capturedPhotos.length === 0;
             uploadBtn.textContent = `Upload ${this.capturedPhotos.length} Photo${this.capturedPhotos.length !== 1 ? 's' : ''}`;
+        }
+        
+        // Update sidebar controls (landscape mode)
+        const countSidebarEl = document.getElementById('photosCountSidebar');
+        const badgeSidebarEl = document.getElementById('galleryBadgeSidebar');
+        const gallerySidebarBtn = document.querySelector('.gallery-btn-sidebar');
+        const uploadSidebarBtn = document.querySelector('.btn-sidebar.primary');
+        
+        if (countSidebarEl) countSidebarEl.textContent = this.capturedPhotos.length;
+        if (badgeSidebarEl) {
+            badgeSidebarEl.textContent = this.capturedPhotos.length;
+            badgeSidebarEl.style.display = this.capturedPhotos.length > 0 ? 'block' : 'none';
+        }
+        if (gallerySidebarBtn) gallerySidebarBtn.disabled = this.capturedPhotos.length === 0;
+        if (uploadSidebarBtn) {
+            uploadSidebarBtn.disabled = this.capturedPhotos.length === 0;
+            uploadSidebarBtn.title = `Upload ${this.capturedPhotos.length} Photo${this.capturedPhotos.length !== 1 ? 's' : ''}`;
         }
     }
 
