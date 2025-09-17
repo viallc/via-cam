@@ -665,22 +665,30 @@
     function applyRotation(imgEl, baseDeg, extraDeg){ const total=((baseDeg+extraDeg)%360+360)%360; imgEl.style.transform = `rotate(${total}deg)`; }
     async function fixPreviewOrientation(url, imgEl, photoId){
       try{
-        // Check if this is a recently captured photo (within last 5 minutes)
-        // These photos were captured with our new orientation-aware logic
+        console.log('📷 [DEBUG] fixPreviewOrientation called for:', photoId, 'URL:', url);
+        
+        // Check if URL contains "camera_photo_" - indicates it was captured with our camera
+        const isCameraPhoto = url && url.includes('camera_photo_');
+        
+        // Also check timestamp method as backup
         const photoTimestamp = photoId ? parseInt(photoId) : 0;
         const now = Date.now();
         const fiveMinutesAgo = now - (5 * 60 * 1000);
+        const isRecentByTime = photoTimestamp > fiveMinutesAgo;
         
-        if (photoTimestamp > fiveMinutesAgo) {
-          // Recent photo - likely captured with our new logic, don't apply EXIF corrections
-          console.log('📷 [ORIENTATION] Skipping EXIF correction for recent photo:', photoId);
+        console.log('📷 [DEBUG] isCameraPhoto:', isCameraPhoto, 'isRecentByTime:', isRecentByTime, 'photoTimestamp:', photoTimestamp);
+        
+        if (isCameraPhoto || isRecentByTime) {
+          // Photo captured with our orientation-aware camera - don't apply EXIF corrections
+          console.log('📷 [ORIENTATION] Skipping EXIF for camera-captured photo:', photoId);
           const extra = getStoredRotation(photoId);
           photoRotationMap[photoId] = extra; 
           applyRotation(imgEl, 0, extra); // No base rotation, only user manual rotation
           return;
         }
         
-        // Older photo - apply EXIF corrections as before
+        // Older/uploaded photo - apply EXIF corrections as before
+        console.log('📷 [ORIENTATION] Applying EXIF correction for uploaded photo:', photoId);
         const rel = url.startsWith('http') ? new URL(url).pathname : url;
         const res = await fetch(rel, { credentials:'same-origin' });
         if(!res.ok) return;
