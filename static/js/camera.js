@@ -731,6 +731,9 @@ class CameraCapture {
             console.log('📍 [CAMERA] Uploading photo with GPS:', photo.gps);
         }
         
+        // Mark this photo as captured with orientation-aware logic
+        formData.append('orientation_corrected', 'true');
+        
         // Add timestamp
         formData.append('timestamp', photo.timestamp.toISOString());
         
