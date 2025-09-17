@@ -82,68 +82,71 @@ class CameraCapture {
         overlay.id = 'cameraOverlay';
         overlay.innerHTML = `
             <div class="camera-container">
-                <div class="camera-header">
-                    <button class="camera-btn close-btn" onclick="cameraCapture.closeCamera()">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </button>
-                    <div class="camera-title-section">
-                        <h3>Take Photos</h3>
-                        ${this.useKeyboardDictation ? '' : `
-                        <div class="voice-status" id="voiceStatus">
-                            <div class="voice-indicator" id="voiceIndicator"></div>
-                            <span id="voiceText">Voice recording ready</span>
-                        </div>`}
-                    </div>
-                    ${this.useKeyboardDictation ? `
-                    <button class="camera-btn" id="dictateBtnTop" onclick="cameraCapture.showDictationSheet()" title="Dictate note">🗣️</button>
-                    ` : `
-                    <button class="camera-btn voice-toggle-btn" onclick="cameraCapture.toggleVoiceRecording()" id="voiceToggleBtn">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                            <line x1="12" y1="19" x2="12" y2="23"></line>
-                            <line x1="8" y1="23" x2="16" y2="23"></line>
-                        </svg>
-                    </button>`}
-                </div>
-                
-                <div class="camera-viewport">
-                    <video id="cameraVideo" autoplay playsinline></video>
-                    <div class="camera-overlay-grid">
-                        <div class="grid-line"></div>
-                        <div class="grid-line"></div>
-                        <div class="grid-line"></div>
-                        <div class="grid-line"></div>
-                    </div>
-                </div>
-                
-                <div class="camera-controls">
-                    <div class="photos-count">
-                        <span id="photosCount">${this.capturedPhotos.length}</span> photos
+                <!-- Main content area (header + camera + bottom controls) -->
+                <div class="camera-main-content">
+                    <div class="camera-header">
+                        <button class="camera-btn close-btn" onclick="cameraCapture.closeCamera()">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                        <div class="camera-title-section">
+                            <h3>Take Photos</h3>
+                            ${this.useKeyboardDictation ? '' : `
+                            <div class="voice-status" id="voiceStatus">
+                                <div class="voice-indicator" id="voiceIndicator"></div>
+                                <span id="voiceText">Voice recording ready</span>
+                            </div>`}
+                        </div>
+                        ${this.useKeyboardDictation ? `
+                        <button class="camera-btn" id="dictateBtnTop" onclick="cameraCapture.showDictationSheet()" title="Dictate note">🗣️</button>
+                        ` : `
+                        <button class="camera-btn voice-toggle-btn" onclick="cameraCapture.toggleVoiceRecording()" id="voiceToggleBtn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                <line x1="12" y1="19" x2="12" y2="23"></line>
+                                <line x1="8" y1="23" x2="16" y2="23"></line>
+                            </svg>
+                        </button>`}
                     </div>
                     
-                    <button class="capture-btn" onclick="cameraCapture.capturePhoto()">
-                        <div class="capture-inner"></div>
-                    </button>
+                    <div class="camera-viewport">
+                        <video id="cameraVideo" autoplay playsinline></video>
+                        <div class="camera-overlay-grid">
+                            <div class="grid-line"></div>
+                            <div class="grid-line"></div>
+                            <div class="grid-line"></div>
+                            <div class="grid-line"></div>
+                        </div>
+                    </div>
                     
-                    <button class="camera-btn gallery-btn" onclick="cameraCapture.showGallery()" ${this.capturedPhotos.length === 0 ? 'disabled' : ''}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                            <polyline points="21,15 16,10 5,21"></polyline>
-                        </svg>
-                        <span class="badge" id="galleryBadge">${this.capturedPhotos.length}</span>
-                    </button>
-                </div>
-                
-                <div class="camera-footer">
-                    <button class="btn secondary" onclick="cameraCapture.closeCamera()">Cancel</button>
-                    <button class="btn primary" onclick="cameraCapture.uploadAll()" ${this.capturedPhotos.length === 0 ? 'disabled' : ''}>
-                        Upload ${this.capturedPhotos.length} Photo${this.capturedPhotos.length !== 1 ? 's' : ''}
-                    </button>
+                    <div class="camera-controls">
+                        <div class="photos-count">
+                            <span id="photosCount">${this.capturedPhotos.length}</span> photos
+                        </div>
+                        
+                        <button class="capture-btn" onclick="cameraCapture.capturePhoto()">
+                            <div class="capture-inner"></div>
+                        </button>
+                        
+                        <button class="camera-btn gallery-btn" onclick="cameraCapture.showGallery()" ${this.capturedPhotos.length === 0 ? 'disabled' : ''}>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                <polyline points="21,15 16,10 5,21"></polyline>
+                            </svg>
+                            <span class="badge" id="galleryBadge">${this.capturedPhotos.length}</span>
+                        </button>
+                    </div>
+                    
+                    <div class="camera-footer">
+                        <button class="btn secondary" onclick="cameraCapture.closeCamera()">Cancel</button>
+                        <button class="btn primary" onclick="cameraCapture.uploadAll()" ${this.capturedPhotos.length === 0 ? 'disabled' : ''}>
+                            Upload ${this.capturedPhotos.length} Photo${this.capturedPhotos.length !== 1 ? 's' : ''}
+                        </button>
+                    </div>
                 </div>
                 
                 <!-- Side controls (visible only in landscape) -->
@@ -221,6 +224,14 @@ class CameraCapture {
                 color: white;
             }
             
+            /* Main content area (portrait mode by default) */
+            .camera-main-content {
+                display: flex;
+                flex-direction: column;
+                flex: 1;
+                height: 100%;
+            }
+            
             /* Hide sidebar controls by default (portrait mode) */
             .camera-controls-sidebar {
                 display: none;
@@ -230,6 +241,21 @@ class CameraCapture {
             @media screen and (orientation: landscape) and (max-height: 600px) {
                 .camera-container {
                     flex-direction: row;
+                    height: 100vh; /* Full viewport height */
+                }
+                
+                /* Create main content area for camera */
+                .camera-main-content {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    height: 100%;
+                }
+                
+                /* Ensure camera viewport takes remaining space */
+                .camera-viewport {
+                    flex: 1;
+                    position: relative;
                 }
                 
                 .camera-controls {
@@ -246,10 +272,12 @@ class CameraCapture {
                     justify-content: center;
                     align-items: center;
                     width: 100px;
+                    min-width: 100px; /* Prevent shrinking */
                     background: rgba(0,0,0,0.8);
                     padding: 15px 8px;
                     gap: 15px;
                     border-left: 1px solid rgba(255,255,255,0.1);
+                    height: 100%; /* Full height */
                 }
                 
                 .photos-count-sidebar {
