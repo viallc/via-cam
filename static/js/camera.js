@@ -502,12 +502,45 @@ class CameraCapture {
         // Flash effect
         this.showFlashEffect();
         
-        // Capture frame
-        this.canvas.width = this.video.videoWidth;
-        this.canvas.height = this.video.videoHeight;
+        // Get device orientation
+        const isLandscape = window.innerWidth > window.innerHeight;
+        const videoWidth = this.video.videoWidth;
+        const videoHeight = this.video.videoHeight;
+        
+        // Adjust canvas dimensions based on device orientation
+        if (isLandscape) {
+            // Device is horizontal - use wider canvas
+            this.canvas.width = Math.max(videoWidth, videoHeight);
+            this.canvas.height = Math.min(videoWidth, videoHeight);
+        } else {
+            // Device is vertical - use taller canvas  
+            this.canvas.width = Math.min(videoWidth, videoHeight);
+            this.canvas.height = Math.max(videoWidth, videoHeight);
+        }
         
         const context = this.canvas.getContext('2d');
-        context.drawImage(this.video, 0, 0);
+        
+        // Draw video frame to match canvas orientation
+        if (isLandscape && videoHeight > videoWidth) {
+            // Video is portrait but device is landscape - rotate 90 degrees
+            context.save();
+            context.translate(this.canvas.width, 0);
+            context.rotate(Math.PI / 2);
+            context.drawImage(this.video, 0, 0, videoWidth, videoHeight);
+            context.restore();
+        } else if (!isLandscape && videoWidth > videoHeight) {
+            // Video is landscape but device is portrait - rotate -90 degrees
+            context.save();
+            context.translate(0, this.canvas.height);
+            context.rotate(-Math.PI / 2);
+            context.drawImage(this.video, 0, 0, videoWidth, videoHeight);
+            context.restore();
+        } else {
+            // Video orientation matches device orientation - draw directly
+            context.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+        }
+        
+        console.log(`📷 [CAMERA] Photo captured - Device: ${isLandscape ? 'Landscape' : 'Portrait'}, Canvas: ${this.canvas.width}x${this.canvas.height}`);
         
         // Get GPS location
         let gpsData = '';
