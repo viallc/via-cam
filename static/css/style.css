@@ -1111,6 +1111,8 @@ a {
   z-index: 10000;
   display: none;
   background: rgba(0, 0, 0, 0.95);
+  /* Ensure modal covers safe areas on mobile */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 .photo-modal.active {
@@ -1140,6 +1142,8 @@ a {
   position: relative;
   z-index: 10001;
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+  /* Mobile safe area adjustments */
+  margin: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 /* Photo Area */
@@ -1606,6 +1610,10 @@ a {
     height: 100vh !important;
     flex-direction: column !important;
     border-radius: 0 !important;
+    margin: 0 !important; /* Remove margin on mobile for full screen */
+    /* Adjust height to account for mobile browser bars */
+    height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
+    max-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom)) !important;
   }
   
   .modal-photo-area {
