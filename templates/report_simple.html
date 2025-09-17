@@ -70,52 +70,7 @@
       }
     }
 
-    async function readExifOrientation(blob){
-      try{
-        const buf = await blob.arrayBuffer();
-        const view = new DataView(buf);
-        if (view.getUint16(0, false) !== 0xFFD8) return 1; // not JPEG
-        let offset = 2;
-        const length = view.byteLength;
-        while (offset < length) {
-          const marker = view.getUint16(offset, false); offset += 2;
-          if (marker === 0xFFE1) { // APP1
-            const app1Length = view.getUint16(offset, false); // includes length bytes
-            const exifHeader = offset + 2;
-            // Check for 'Exif\0\0'
-            if (view.getUint32(exifHeader, false) === 0x45786966 && view.getUint16(exifHeader + 4, false) === 0x0000){
-              const tiffOffset = exifHeader + 6;
-              const little = view.getUint16(tiffOffset, false) === 0x4949;
-              const getShort = (o)=> view.getUint16(tiffOffset + o, little);
-              const getLong  = (o)=> view.getUint32(tiffOffset + o, little);
-              if (getShort(2) !== 0x002A) return 1;
-              let ifd = getLong(4);
-              const entries = getShort(ifd);
-              for (let i=0;i<entries;i++){
-                const entry = ifd + 2 + i*12;
-                const tag = getShort(entry);
-                if (tag === 0x0112){ // Orientation
-                  const type = getShort(entry + 2);
-                  const count = getLong(entry + 4);
-                  if (type === 3 && count === 1){
-                    const val = getShort(entry + 8);
-                    return val || 1;
-                  }
-                }
-              }
-            }
-            offset += app1Length; // skip APP1 block
-          } else if ((marker & 0xFF00) !== 0xFF00) {
-            break; // invalid
-          } else {
-            offset += view.getUint16(offset, false);
-          }
-        }
-      }catch(e){}
-      return 1;
-    }
-
-    async function optimalImageDataUrl(url, maxDim=1500, quality=0.78, photoId){
+    async function optimalImageDataUrl(url, maxDim=1500, quality=0.78){
       try{
         const rel = url.startsWith('http') ? new URL(url).pathname : url;
         const res = await fetch(rel, { credentials:'same-origin' });
@@ -125,50 +80,16 @@
           i.onload=()=>resolve(i); i.onerror=reject;
           i.src = URL.createObjectURL(blob);
         });
-
-        // Get user manual rotation from modal (this is what user sees as correct)
-        let userRotation = 0;
-        if (photoId && typeof localStorage !== 'undefined') {
-          userRotation = parseInt(localStorage.getItem(`photoRotation_${photoId}`) || '0', 10) || 0;
-        }
-
-        // Start with image natural dimensions
-        let w = img.naturalWidth || img.width;
-        let h = img.naturalHeight || img.height;
-
-        // If user rotated 90/270 degrees, swap dimensions for scaling
-        if (userRotation === 90 || userRotation === 270) {
-          [w, h] = [h, w];
-        }
-
-        // Scale down if needed
-        const scale = Math.min(1, maxDim/Math.max(w, h));
-        const finalW = Math.max(1, Math.round(w*scale));
-        const finalH = Math.max(1, Math.round(h*scale));
-
-        // Create canvas with final dimensions
-        const c = document.createElement('canvas');
-        c.width = finalW;
-        c.height = finalH;
-        const ctx = c.getContext('2d');
-
-        // Apply user rotation (this matches what they see in modal)
-        ctx.save();
-        ctx.translate(finalW/2, finalH/2);
-        ctx.rotate((userRotation * Math.PI) / 180);
-        
-        // Draw image centered
-        const drawW = userRotation === 90 || userRotation === 270 ? finalH : finalW;
-        const drawH = userRotation === 90 || userRotation === 270 ? finalW : finalH;
-        ctx.drawImage(img, -drawW/2, -drawH/2, drawW, drawH);
-        ctx.restore();
-
+        const scale = Math.min(1, maxDim/Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width*scale));
+        const h = Math.max(1, Math.round(img.height*scale));
+        const c = document.createElement('canvas'); c.width=w; c.height=h;
+        const ctx = c.getContext('2d'); ctx.drawImage(img,0,0,w,h);
         const dataUrl = c.toDataURL('image/jpeg', quality);
         URL.revokeObjectURL(img.src);
-        const ratio = finalW / finalH;
-        return { dataUrl, width:finalW, height:finalH, ratio, orientation: (ratio >= 1.2 ? 'landscape' : 'portrait') };
+        const ratio = w / h;
+        return { dataUrl, width:w, height:h, ratio, orientation: (ratio >= 1.2 ? 'landscape' : 'portrait') };
       }catch(e){
-        console.error("Error in optimalImageDataUrl:", e);
         const fallback = await imageToDataUrl(url);
         return { dataUrl: fallback, width: null, height: null, orientation: 'portrait' };
       }
@@ -315,7 +236,7 @@
         portraits.length = 0;
       };
       for(const ph of use){
-        const img = await optimalImageDataUrl(ph.src || ph.url, 1500, 0.78, ph.id);
+        const img = await optimalImageDataUrl(ph.src || ph.url, 1500, 0.78);
         if (img && img.orientation === 'landscape'){
           // Flush any pending portrait columns first
           flushPortraits();
