@@ -115,7 +115,7 @@
       return 1;
     }
 
-    async function optimalImageDataUrl(url, maxDim=1500, quality=0.78){
+    async function optimalImageDataUrl(url, maxDim=1500, quality=0.78, photoId){
       try{
         const rel = url.startsWith('http') ? new URL(url).pathname : url;
         const res = await fetch(rel, { credentials:'same-origin' });
@@ -136,7 +136,7 @@
         const h = Math.max(1, Math.round(baseH*scale));
         const c = document.createElement('canvas'); c.width=w; c.height=h;
         const ctx = c.getContext('2d');
-        // Apply orientation transform
+        // Apply EXIF orientation transform
         if (orientation === 3){ // 180
           ctx.translate(w, h); ctx.rotate(Math.PI);
           ctx.drawImage(img, 0, 0, w, h);
@@ -149,6 +149,21 @@
         } else {
           ctx.drawImage(img, 0, 0, w, h);
         }
+        // Apply user manual rotation saved from the modal (if any)
+        try{
+          if (photoId){
+            const extra = parseInt(localStorage.getItem('rot_'+photoId)||'0',10)||0;
+            if (extra){
+              const tmp = document.createElement('canvas'); tmp.width=c.width; tmp.height=c.height; tmp.getContext('2d').drawImage(c,0,0);
+              if (extra % 180 !== 0){ c.width = h; c.height = w; }
+              const ctx2 = c.getContext('2d'); ctx2.save();
+              if (extra === 90){ ctx2.translate(c.width, 0); ctx2.rotate(Math.PI/2); }
+              else if (extra === 180){ ctx2.translate(c.width, c.height); ctx2.rotate(Math.PI); }
+              else if (extra === 270){ ctx2.translate(0, c.height); ctx2.rotate(-Math.PI/2); }
+              ctx2.drawImage(tmp,0,0); ctx2.restore();
+            }
+          }
+        }catch(e){}
         const dataUrl = c.toDataURL('image/jpeg', quality);
         URL.revokeObjectURL(img.src);
         const ratio = w / h;
@@ -300,7 +315,7 @@
         portraits.length = 0;
       };
       for(const ph of use){
-        const img = await optimalImageDataUrl(ph.src || ph.url, 1500, 0.78);
+        const img = await optimalImageDataUrl(ph.src || ph.url, 1500, 0.78, ph.id);
         if (img && img.orientation === 'landscape'){
           // Flush any pending portrait columns first
           flushPortraits();
