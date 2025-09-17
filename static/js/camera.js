@@ -21,11 +21,6 @@ class CameraCapture {
         this.useKeyboardDictation = this.isMobile; // prefer OS keyboard dictation on mobile
         this.pendingDictation = '';
         this.keepDictation = false;
-
-        // Preview controls
-        this.manualRotationDeg = 0; // 0/90/180/270
-        this.fitMode = 'contain'; // 'contain' or 'cover'
-        this.rotationPreference = (typeof localStorage!== 'undefined' && localStorage.getItem('camRotatePref')) || 'cw'; // 'cw' or 'ccw'
     }
 
     async startCamera(projectId) {
@@ -116,7 +111,7 @@ class CameraCapture {
                 </div>
                 
                 <div class="camera-viewport">
-                    <video id="cameraVideo" autoplay playsinline style="transform-origin:center center;"></video>
+                    <video id="cameraVideo" autoplay playsinline></video>
                     <div class="camera-overlay-grid">
                         <div class="grid-line"></div>
                         <div class="grid-line"></div>
@@ -142,17 +137,8 @@ class CameraCapture {
                         </svg>
                         <span class="badge" id="galleryBadge">${this.capturedPhotos.length}</span>
                     </button>
-
-                    <div class="camera-tools">
-                      <button class="tool-btn" title="Rotate" onclick="cameraCapture.rotatePreview()">↻</button>
-                      <button class="tool-btn" id="fitBtn" title="Toggle Fit/Fill" onclick="cameraCapture.toggleFit()">Fill</button>
-                      <button class="tool-btn" id="fixDirBtn" title="Fix direction for this device" onclick="cameraCapture.toggleRotationPref()">Fix CW</button>
-                      <button class="tool-btn" title="Fullscreen" onclick="cameraCapture.fullscreen()">⛶</button>
-                    </div>
                 </div>
                 
-                <div id="thumbStrip" class="camera-thumb-strip"></div>
-
                 <div class="camera-footer">
                     <button class="btn secondary" onclick="cameraCapture.closeCamera()">Cancel</button>
                     <button class="btn primary" onclick="cameraCapture.uploadAll()" ${this.capturedPhotos.length === 0 ? 'disabled' : ''}>
@@ -392,20 +378,6 @@ class CameraCapture {
                 padding: 16px;
                 background: rgba(0,0,0,0.5);
             }
-
-            .camera-tools { display:flex; gap:10px; align-items:center; margin-left:8px; }
-            .tool-btn { background:#111; color:#fff; border:1px solid #333; border-radius:10px; padding:10px 12px; font-size:14px; }
-            @media (max-width: 768px) { .tool-btn { padding:12px 14px; font-size:16px; } }
-
-            .camera-thumb-strip { display:flex; gap:8px; overflow-x:auto; padding:8px 14px; background:rgba(0,0,0,0.5); }
-            .camera-thumb-strip img.cam-thumb { width:64px; height:64px; object-fit:cover; border-radius:6px; border:1px solid #333; flex:0 0 auto; cursor:pointer; }
-
-            /* Gallery overlay */
-            #galleryOverlay { position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:10050; display:none; align-items:center; justify-content:center; }
-            #galleryOverlay img { max-width:92vw; max-height:88vh; border-radius:8px; }
-            #galClose { position:absolute; top:12px; left:12px; background:#111; color:#fff; border:1px solid #333; border-radius:8px; padding:8px 10px; }
-            #galPrev, #galNext { position:absolute; top:50%; transform:translateY(-50%); background:#111; color:#fff; border:1px solid #333; border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center; }
-            #galPrev { left:10px; } #galNext { right:10px; }
             
             .camera-footer .btn {
                 padding: 12px 24px;
@@ -457,7 +429,6 @@ class CameraCapture {
                 
                 .camera-controls {
                     padding: 20px 16px;
-                    gap: 8px;
                 }
                 
                 .capture-btn {
@@ -473,9 +444,6 @@ class CameraCapture {
                 .camera-footer {
                     padding: 12px 16px;
                 }
-                .photos-count { font-size: 16px; }
-                .camera-tools { gap: 12px; }
-                .tool-btn { padding: 12px 16px; font-size: 16px; }
             }
         `;
         
@@ -534,32 +502,12 @@ class CameraCapture {
         // Flash effect
         this.showFlashEffect();
         
-        // Prefer native ImageCapture when available for full-quality + EXIF orientation
-        const track = this.stream.getVideoTracks && this.stream.getVideoTracks()[0];
-        if (window.ImageCapture && track) {
-            try {
-                const ic = new ImageCapture(track);
-                const blob = await ic.takePhoto();
-                console.log('📷 [CAMERA] Photo captured using ImageCapture API (preserves EXIF)');
-                await this._finalizeCapturedBlob(blob);
-                return;
-            } catch (e) {
-                console.warn('[CAMERA] ImageCapture failed, falling back to canvas.', e);
-            }
-        }
+        // Capture frame
+        this.canvas.width = this.video.videoWidth;
+        this.canvas.height = this.video.videoHeight;
         
-        // Simplified canvas fallback - capture as-is without complex rotation
-        const srcW = this.video.videoWidth;
-        const srcH = this.video.videoHeight;
-        
-        this.canvas.width = srcW;
-        this.canvas.height = srcH;
         const context = this.canvas.getContext('2d');
-        
-        // Draw video frame directly without rotation
-        context.drawImage(this.video, 0, 0, srcW, srcH);
-        
-        console.log(`📷 [CAMERA] Photo captured using canvas fallback (${srcW}x${srcH})`)
+        context.drawImage(this.video, 0, 0);
         
         // Get GPS location
         let gpsData = '';
@@ -574,7 +522,7 @@ class CameraCapture {
         }
         
         // Convert to blob
-        this.canvas.toBlob(async (blob) => {
+        this.canvas.toBlob((blob) => {
             // Get note at capture time: mobile keyboard dictation or in-app recorder
             let voiceComment = '';
             let voiceConfidence = 0;
@@ -589,7 +537,18 @@ class CameraCapture {
                 voiceConfidence = this.voiceRecorder ? this.voiceRecorder.getConfidence() : 0;
             }
             
-            await this._finalizeCapturedBlob(blob, voiceComment, voiceConfidence, gpsData);
+            const photoData = {
+                id: Date.now(),
+                blob: blob,
+                dataUrl: this.canvas.toDataURL('image/jpeg', 0.8),
+                timestamp: new Date(),
+                voiceComment: voiceComment.trim(),
+                voiceConfidence: voiceConfidence,
+                gps: gpsData
+            };
+            
+            this.capturedPhotos.push(photoData);
+            this.updateUI();
             
             // Log voice comment for debugging
             if (voiceComment.trim()) {
@@ -608,31 +567,7 @@ class CameraCapture {
                 }, 100);
             }
             
-        }, 'image/jpeg', 0.9);
-    }
-
-    async _finalizeCapturedBlob(blob, voiceCommentOpt, voiceConfidenceOpt, gpsOpt){
-        let gpsData = gpsOpt || '';
-        if (!gpsData) {
-            try { const position = await this.getCurrentLocation(); if (position) gpsData = `${position.coords.latitude.toFixed(6)},${position.coords.longitude.toFixed(6)}`; } catch(e){}
-        }
-        const dataUrl = await new Promise((res)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.readAsDataURL(blob);});
-        let voiceComment = voiceCommentOpt || '';
-        let voiceConfidence = voiceConfidenceOpt || 0;
-        if (!voiceCommentOpt) {
-            if (this.useKeyboardDictation) {
-                voiceComment = (this.pendingDictation || '').trim();
-                voiceConfidence = voiceComment ? 0.9 : 0;
-                if (!this.keepDictation) { this.pendingDictation = ''; }
-            } else if (this.voiceRecorder && this.isVoiceEnabled) {
-                voiceComment = this.voiceRecorder.getFinalTranscript() || '';
-                voiceConfidence = this.voiceRecorder.getConfidence() || 0;
-            }
-        }
-        const photoData = { id: Date.now(), blob, dataUrl, timestamp: new Date(), voiceComment: voiceComment.trim(), voiceConfidence, gps: gpsData };
-        this.capturedPhotos.push(photoData);
-        this.updateUI();
-        this.updateThumbStrip();
+        }, 'image/jpeg', 0.8);
     }
 
     showFlashEffect() {
@@ -672,35 +607,6 @@ class CameraCapture {
             uploadBtn.disabled = this.capturedPhotos.length === 0;
             uploadBtn.textContent = `Upload ${this.capturedPhotos.length} Photo${this.capturedPhotos.length !== 1 ? 's' : ''}`;
         }
-    }
-
-    updateThumbStrip() {
-        const strip = document.getElementById('thumbStrip');
-        if (!strip) return;
-        strip.innerHTML = '';
-        for (let i=0;i<this.capturedPhotos.length;i++){
-            const p = this.capturedPhotos[i];
-            const img = document.createElement('img');
-            img.src = p.dataUrl; img.className = 'cam-thumb'; img.title = new Date(p.timestamp).toLocaleTimeString();
-            img.onclick = ()=> this.openGallery(i);
-            strip.appendChild(img);
-        }
-    }
-
-    openGallery(startIndex){
-        if (!this.capturedPhotos.length) return;
-        let idx = Math.max(0, Math.min(startIndex||0, this.capturedPhotos.length-1));
-        let ov = document.getElementById('galleryOverlay');
-        if (!ov){
-            ov = document.createElement('div'); ov.id='galleryOverlay';
-            ov.innerHTML = `<button id="galClose">Close</button><button id="galPrev">‹</button><img id="galImg"/><button id="galNext">›</button>`;
-            document.body.appendChild(ov);
-            document.getElementById('galClose').onclick = ()=> ov.style.display='none';
-            document.getElementById('galPrev').onclick = ()=> show(idx-1);
-            document.getElementById('galNext').onclick = ()=> show(idx+1);
-        }
-        const show = (i)=>{ idx = (i+this.capturedPhotos.length)%this.capturedPhotos.length; const ph=this.capturedPhotos[idx]; const img=document.getElementById('galImg'); img.src=ph.dataUrl; };
-        show(idx); ov.style.display='flex';
     }
 
     async switchCamera() {
@@ -977,54 +883,6 @@ class CameraCapture {
                 : this.currentVoiceTranscript;
             text.textContent = `"${truncated}"`;
         }
-    }
-
-    // Preview utilities
-    rotatePreview() {
-        this.manualRotationDeg = (this.manualRotationDeg + 90) % 360;
-        if (this.video) {
-            this.video.style.transform = `rotate(${this.manualRotationDeg}deg)`;
-        }
-    }
-    toggleFit() {
-        this.fitMode = this.fitMode === 'contain' ? 'cover' : 'contain';
-        const v = this.video; if (!v) return; v.style.objectFit = this.fitMode; const btn = document.getElementById('fitBtn'); if (btn) btn.textContent = this.fitMode === 'contain' ? 'Fit' : 'Fill';
-    }
-
-    setupPreviewAutoRotate(){
-        const apply = ()=>{
-            try{
-                const angle = this.getDeviceAngle();
-                if (!this.video) return;
-                const deg = angle === 0 ? 0 : angle; // 0/90/180/270
-                this.video.style.transform = `rotate(${deg}deg)`;
-            }catch(e){}
-        };
-        apply();
-        if (screen && screen.orientation && screen.orientation.addEventListener) {
-            screen.orientation.addEventListener('change', apply);
-        } else {
-            window.addEventListener('orientationchange', apply);
-        }
-    }
-    async fullscreen() {
-        const el = document.getElementById('cameraOverlay');
-        if (el && el.requestFullscreen) { try { await el.requestFullscreen(); } catch(e){} }
-    }
-    toggleRotationPref() {
-        this.rotationPreference = this.rotationPreference === 'cw' ? 'ccw' : 'cw';
-        try { if (typeof localStorage !== 'undefined') localStorage.setItem('camRotatePref', this.rotationPreference); } catch(e){}
-        const b = document.getElementById('fixDirBtn'); if (b) b.textContent = this.rotationPreference === 'cw' ? 'Fix CW' : 'Fix CCW';
-    }
-
-    // Use device/screen orientation to derive a stable angle for capture
-    getDeviceAngle() {
-        try {
-            if (screen && screen.orientation && typeof screen.orientation.angle === 'number') {
-                return ((screen.orientation.angle % 360) + 360) % 360;
-            }
-        } catch(e){}
-        return window.innerWidth >= window.innerHeight ? 90 : 0;
     }
 }
 
